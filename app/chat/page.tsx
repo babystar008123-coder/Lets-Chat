@@ -1304,7 +1304,7 @@ export default function ChatPage() {
   };
 
   return (
-    <div className="flex h-[100dvh] w-full max-w-full overflow-hidden bg-black text-slate-100 font-sans select-none relative">
+    <div className="fixed inset-0 h-[100dvh] w-full overflow-hidden bg-black text-slate-100 font-sans select-none flex flex-row">
       <InlineHeartShower trigger={heartTrigger} />
 
       {/* Floating Notification */}
@@ -1514,7 +1514,7 @@ export default function ChatPage() {
       </aside>
 
       {/* Main Chat Canvas */}
-      <main className="flex-1 flex flex-col h-full bg-black/90">
+     <main className="flex-1 flex flex-col h-full w-full overflow-hidden bg-black relative">
         <header className="h-14 sm:h-16 flex items-center justify-between px-3 sm:px-6 bg-slate-950/80 backdrop-blur-xl border-b border-slate-900 z-10 flex-shrink-0">
           <div className="flex items-center gap-2.5 sm:gap-3">
             <button
@@ -1671,7 +1671,7 @@ export default function ChatPage() {
         )}
 
         {/* Mobile-Aligned Input Composer */}
-        <div className="p-2 sm:p-3 bg-slate-950/90 backdrop-blur-xl border-t border-slate-900 relative pb-[calc(0.5rem+env(safe-area-inset-bottom))] flex-shrink-0">
+        <div className="p-2 sm:p-3 bg-slate-950 border-t border-slate-900 w-full flex-shrink-0 z-20 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
           <div className="max-w-4xl mx-auto flex items-end gap-1.5 sm:gap-2 bg-slate-900 border border-slate-800 rounded-2xl p-1.5 focus-within:border-sky-500 transition-colors">
             <textarea
               rows={1}
