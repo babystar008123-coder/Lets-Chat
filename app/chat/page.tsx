@@ -59,7 +59,7 @@ import {
 } from "firebase/firestore";
 
 // ==========================================
-// 1. INLINE SYNTHESIZED NOTIFICATION AUDIO CHIME
+// 1. NOTIFICATION CHIME & MOBILE PUSH
 // ==========================================
 function playNotificationChime() {
   try {
@@ -83,14 +83,12 @@ function playNotificationChime() {
     osc.start();
     osc.stop(ctx.currentTime + 0.35);
   } catch (e) {
-    console.warn("Audio playback:", e);
+    console.warn(e);
   }
 }
 
-// Trigger Mobile System Notification (Works when app is minimized/screen locked)
 function triggerMobileSystemNotification(title: string, body: string, icon?: string) {
   playNotificationChime();
-
   if (typeof window === "undefined" || !("Notification" in window)) return;
 
   if (Notification.permission === "granted") {
@@ -100,11 +98,8 @@ function triggerMobileSystemNotification(title: string, body: string, icon?: str
         icon: icon || "/favicon.ico",
         badge: "/favicon.ico",
         tag: "lets-chat-message",
-        
       };
-
       const notif = new Notification(title, options);
-
       notif.onclick = () => {
         window.focus();
         notif.close();
@@ -112,7 +107,7 @@ function triggerMobileSystemNotification(title: string, body: string, icon?: str
     } catch (e) {
       if (navigator.serviceWorker && navigator.serviceWorker.ready) {
         navigator.serviceWorker.ready.then((reg) => {
-          (reg as any).showNotification(title, {
+          reg.showNotification(title, {
             body,
             icon: icon || "/favicon.ico",
             badge: "/favicon.ico",
@@ -122,8 +117,9 @@ function triggerMobileSystemNotification(title: string, body: string, icon?: str
     }
   }
 }
+
 // ==========================================
-// 2. INLINE AGORA WEBRTC ENGINE
+// 2. AGORA WEBRTC ENGINE
 // ==========================================
 const AGORA_APP_ID = process.env.NEXT_PUBLIC_AGORA_APP_ID || "";
 
@@ -164,12 +160,10 @@ function useInlineAgora() {
           setRemoteUsers((prev) => prev.filter((u) => u.uid !== user.uid));
         });
       } catch (err) {
-        console.warn("Agora initialization:", err);
+        console.warn(err);
       }
     };
-
     init();
-
     return () => {
       localAudioTrack?.close();
       localVideoTrack?.close();
@@ -200,7 +194,7 @@ function useInlineAgora() {
       }
       setJoined(true);
     } catch (e) {
-      console.error("Call error:", e);
+      console.error(e);
     }
   };
 
@@ -244,7 +238,7 @@ function useInlineAgora() {
 }
 
 // ==========================================
-// 3. ROMANTIC NEON HEART PARTICLES SHOWER
+// 3. HEART SHOWER ENGINE
 // ==========================================
 interface HeartParticle {
   id: number;
@@ -300,7 +294,7 @@ function InlineHeartShower({ trigger }: { trigger: number }) {
 }
 
 // ==========================================
-// 4. INLINE CALL HUD MODAL
+// 4. CALL HUD MODAL
 // ==========================================
 function InlineCallModal({
   channelName,
@@ -317,16 +311,12 @@ function InlineCallModal({
   const remoteRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (localVideoTrack && localRef.current) {
-      localVideoTrack.play(localRef.current);
-    }
+    if (localVideoTrack && localRef.current) localVideoTrack.play(localRef.current);
   }, [localVideoTrack]);
 
   useEffect(() => {
     const remote = remoteUsers[0];
-    if (remote?.videoTrack && remoteRef.current) {
-      remote.videoTrack.play(remoteRef.current);
-    }
+    if (remote?.videoTrack && remoteRef.current) remote.videoTrack.play(remoteRef.current);
   }, [remoteUsers]);
 
   return (
@@ -343,7 +333,7 @@ function InlineCallModal({
               <p className="text-base font-bold text-slate-200">Room: {channelName}</p>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-400 text-xs font-semibold">
                 <span className="w-2 h-2 rounded-full bg-sky-400 animate-ping" />
-                {remoteUsers.length > 0 ? "Cyber Stream Connected" : "Dialing..."}
+                {remoteUsers.length > 0 ? "Cyber Stream Connected" : "Connecting..."}
               </div>
             </div>
           )}
@@ -360,7 +350,7 @@ function InlineCallModal({
           <button
             onClick={onToggleMute}
             className={`p-4 rounded-2xl transition-all ${
-              isAudioMuted ? "bg-rose-600 text-white shadow-lg shadow-rose-600/40" : "bg-slate-900 border border-slate-700 text-slate-200 hover:bg-slate-800"
+              isAudioMuted ? "bg-rose-600 text-white shadow-lg" : "bg-slate-900 border border-slate-700 text-slate-200"
             }`}
           >
             {isAudioMuted ? <MicOff size={20} /> : <Mic size={20} />}
@@ -370,7 +360,7 @@ function InlineCallModal({
             <button
               onClick={onToggleVideo}
               className={`p-4 rounded-2xl transition-all ${
-                !isVideoEnabled ? "bg-rose-600 text-white shadow-lg shadow-rose-600/40" : "bg-slate-900 border border-slate-700 text-slate-200 hover:bg-slate-800"
+                !isVideoEnabled ? "bg-rose-600 text-white shadow-lg" : "bg-slate-900 border border-slate-700 text-slate-200"
               }`}
             >
               {!isVideoEnabled ? <VideoOff size={20} /> : <Video size={20} />}
@@ -390,7 +380,7 @@ function InlineCallModal({
 }
 
 // ==========================================
-// 5. REAL TAMIL CINEMA MEMES & SYNCED DIALOGUES
+// 5. REAL TAMIL CINEMA MEMES
 // ==========================================
 interface TamilMeme {
   id: string;
@@ -511,15 +501,6 @@ const TAMIL_VAULT: TamilMeme[] = [
     badgeColor: "bg-sky-500/20 text-sky-300 border-sky-500/30",
     url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80",
   },
-  {
-    id: "dial_anger",
-    actor: "Playful Fight",
-    movie: "Cute Anger",
-    quote: "En kooda pesaama irundha kola panirven paathukko! 😤",
-    tag: "dialogues",
-    badgeColor: "bg-rose-500/20 text-rose-300 border-rose-500/30",
-    url: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&auto=format&fit=crop&q=80",
-  },
 ];
 
 // ==========================================
@@ -576,7 +557,7 @@ function MobileMemeBottomSheet({
                       onClick={() => setActiveTab(tab.key)}
                       className={`flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all ${
                         isActive
-                          ? "bg-gradient-to-r from-rose-500 to-sky-500 text-white shadow-md shadow-rose-500/30"
+                          ? "bg-gradient-to-r from-rose-500 to-sky-500 text-white shadow-md"
                           : "text-slate-400 hover:text-slate-200"
                       }`}
                     >
@@ -628,7 +609,90 @@ function MobileMemeBottomSheet({
 }
 
 // ==========================================
-// 7. PROFILE EDITOR MODAL
+// 7. USER PROFILE CARD MODAL (TAP USER ID)
+// ==========================================
+function UserProfileCardModal({
+  user,
+  myId,
+  isOpen,
+  onClose,
+  onRequestFriend,
+  onOpenDirectChat,
+}: {
+  user: { id: string; name: string; avatar: string } | null;
+  myId: string;
+  isOpen: boolean;
+  onClose: () => void;
+  onRequestFriend: (targetId: string) => void;
+  onOpenDirectChat: (targetId: string) => void;
+}) {
+  if (!isOpen || !user) return null;
+  const isMe = user.id === myId;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
+      <motion.div
+        initial={{ scale: 0.92, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.92, opacity: 0 }}
+        className="w-full max-w-sm bg-slate-950 border border-sky-500/50 rounded-3xl p-6 shadow-[0_0_50px_rgba(56,189,248,0.25)] relative text-center"
+      >
+        <button onClick={onClose} className="absolute right-4 top-4 text-slate-400 hover:text-white">
+          <X size={18} />
+        </button>
+
+        <div className="w-24 h-24 rounded-full mx-auto overflow-hidden border-2 border-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.5)] mb-3 bg-slate-900">
+          {user.avatar ? (
+            <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-slate-500 text-3xl font-bold">
+              {user.name.charAt(0)}
+            </div>
+          )}
+        </div>
+
+        <h3 className="text-lg font-black text-white">{user.name}</h3>
+        <p className="text-xs font-mono font-bold text-sky-400 tracking-wider mb-2">ID: {user.id}</p>
+
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold mb-6">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+          <span>Active on Lets Chat</span>
+        </div>
+
+        {!isMe ? (
+          <div className="space-y-2.5">
+            <button
+              onClick={() => {
+                onRequestFriend(user.id);
+                onClose();
+              }}
+              className="w-full py-3 bg-gradient-to-r from-rose-600 to-sky-600 hover:from-rose-500 hover:to-sky-500 text-white font-black rounded-xl text-xs shadow-lg shadow-rose-600/30 transition-transform active:scale-95 flex items-center justify-center gap-2"
+            >
+              <UserPlus size={16} />
+              <span>Send Friend Request</span>
+            </button>
+
+            <button
+              onClick={() => {
+                onOpenDirectChat(user.id);
+                onClose();
+              }}
+              className="w-full py-2.5 bg-slate-900 border border-slate-800 hover:border-sky-500/40 text-slate-300 text-xs font-bold rounded-xl flex items-center justify-center gap-2"
+            >
+              <MessageCircle size={15} />
+              <span>Direct Message</span>
+            </button>
+          </div>
+        ) : (
+          <p className="text-xs text-slate-500 font-medium">This is your profile.</p>
+        )}
+      </motion.div>
+    </div>
+  );
+}
+
+// ==========================================
+// 8. PROFILE EDITOR MODAL
 // ==========================================
 function ProfileModal({
   isOpen,
@@ -663,9 +727,7 @@ function ProfileModal({
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = () => {
-      setAvatar(reader.result as string);
-    };
+    reader.onload = () => setAvatar(reader.result as string);
     reader.readAsDataURL(file);
   };
 
@@ -755,7 +817,7 @@ function ProfileModal({
 }
 
 // ==========================================
-// 8. LOGIN & PERMANENT PIN REGISTRATION MODAL
+// 9. LOGIN & PIN REGISTRATION MODAL
 // ==========================================
 function AuthSecurityModal({
   isOpen,
@@ -839,6 +901,7 @@ function AuthSecurityModal({
         await setDoc(doc(db, "users", permanentSeqId), {
           phone: cleanPhone,
           name: userName,
+          avatar: "",
           online: true,
           lastSeen: serverTimestamp(),
         });
@@ -851,7 +914,7 @@ function AuthSecurityModal({
         });
       }
     } catch (err: any) {
-      setError("Network or Firebase authorization error. Please try again.");
+      setError("Network or Firebase error. Please try again.");
       console.error(err);
     } finally {
       setLoading(false);
@@ -867,7 +930,7 @@ function AuthSecurityModal({
         animate={{ scale: 1, opacity: 1 }}
         className="w-full max-w-sm bg-slate-900 border border-sky-500/40 rounded-3xl p-6 shadow-[0_0_50px_rgba(56,189,248,0.25)] relative"
       >
-        <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-rose-500 via-sky-500 to-indigo-600 flex items-center justify-center mx-auto text-white shadow-lg shadow-rose-500/30 mb-4">
+        <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-rose-500 via-sky-500 to-indigo-600 flex items-center justify-center mx-auto text-white shadow-lg mb-4">
           <Lock size={26} />
         </div>
 
@@ -943,7 +1006,7 @@ function AuthSecurityModal({
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 mt-2 bg-gradient-to-r from-rose-600 via-sky-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white font-black rounded-xl text-xs shadow-lg shadow-sky-600/30 transition-transform active:scale-95 disabled:opacity-50"
+            className="w-full py-3 mt-2 bg-gradient-to-r from-rose-600 via-sky-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white font-black rounded-xl text-xs shadow-lg transition-transform active:scale-95 disabled:opacity-50"
           >
             {loading ? "Verifying..." : isRegistering ? "Claim My Permanent ID" : "Unlock My Account"}
           </button>
@@ -954,7 +1017,7 @@ function AuthSecurityModal({
 }
 
 // ==========================================
-// 9. REASSEMBLE CHUNKED VIDEO MEDIA COMPONENT
+// 10. REASSEMBLE CHUNKED VIDEO PLAYER
 // ==========================================
 function ChunkedVideoPlayer({ mediaId, mimeType }: { mediaId: string; mimeType: string }) {
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
@@ -1003,7 +1066,7 @@ function ChunkedVideoPlayer({ mediaId, mimeType }: { mediaId: string; mimeType: 
 }
 
 // ==========================================
-// 10. MASTER CHAT WORKSPACE
+// 11. MASTER CHAT WORKSPACE
 // ==========================================
 interface Message {
   id: string;
@@ -1051,11 +1114,11 @@ export default function ChatPage() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-  // Notification Permission State
-  const [notificationGranted, setNotificationGranted] = useState(false);
-  const [showNotifPrompt, setShowNotifPrompt] = useState(false);
+  // User Profile Inspection Card State
+  const [inspectedUser, setInspectedUser] = useState<{ id: string; name: string; avatar: string } | null>(null);
 
-  // Upload Progress State
+  // Notification Permission State
+  const [showNotifPrompt, setShowNotifPrompt] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   // Incoming Requests & Push Notification Toast
@@ -1084,12 +1147,10 @@ export default function ChatPage() {
     toggleVideo,
   } = useInlineAgora();
 
-  // Check & Setup Mobile Push Notification Permissions
+  // Check Notification Permission
   useEffect(() => {
     if (typeof window !== "undefined" && "Notification" in window) {
-      if (Notification.permission === "granted") {
-        setNotificationGranted(true);
-      } else if (Notification.permission === "default") {
+      if (Notification.permission === "default") {
         setShowNotifPrompt(true);
       }
     }
@@ -1099,7 +1160,6 @@ export default function ChatPage() {
     if (typeof window !== "undefined" && "Notification" in window) {
       const perm = await Notification.requestPermission();
       if (perm === "granted") {
-        setNotificationGranted(true);
         setShowNotifPrompt(false);
         triggerMobileSystemNotification("Notifications Enabled! 🔔", "You will now receive alerts even when outside Lets Chat.");
       } else {
@@ -1108,7 +1168,7 @@ export default function ChatPage() {
     }
   };
 
-  // Authentication & Permanent Session Validation
+  // Auth & Permanent Identity
   useEffect(() => {
     const savedPhone = localStorage.getItem("lovechat_perm_phone");
     const savedId = localStorage.getItem("lovechat_perm_id");
@@ -1195,7 +1255,6 @@ export default function ChatPage() {
             ? "Sent a Voice Note"
             : lastMsg.text;
 
-        // Trigger Mobile Background System Notification if tab is inactive/hidden
         if (typeof document !== "undefined" && document.visibilityState === "hidden") {
           triggerMobileSystemNotification(`${lastMsg.senderName || lastMsg.senderId}`, previewText, lastMsg.senderAvatar);
         } else {
@@ -1218,6 +1277,33 @@ export default function ChatPage() {
 
     return () => unsubscribe();
   }, [activeChat, myFancyNumber]);
+
+  // Inspect User Profile when Tapping their Avatar / Name in Chat
+  const inspectUser = async (userId: string, currentName?: string, currentAvatar?: string) => {
+    try {
+      const userDoc = await getDoc(doc(db, "users", userId));
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        setInspectedUser({
+          id: userId,
+          name: data.name || currentName || userId,
+          avatar: data.avatar || currentAvatar || "",
+        });
+      } else {
+        setInspectedUser({
+          id: userId,
+          name: currentName || userId,
+          avatar: currentAvatar || "",
+        });
+      }
+    } catch (e) {
+      setInspectedUser({
+        id: userId,
+        name: currentName || userId,
+        avatar: currentAvatar || "",
+      });
+    }
+  };
 
   // Update Profile
   const handleUpdateProfile = (newName: string, newAvatar: string) => {
@@ -1319,11 +1405,10 @@ export default function ChatPage() {
       });
       setMessage("");
     } catch (e) {
-      console.error("Message send failure:", e);
+      console.error(e);
     }
   };
 
-  // Add Emoji Reaction to Any Message
   const addReactionToMessage = async (msgId: string, emoji: string) => {
     const messageDocRef = activeChat.isGlobal
       ? doc(db, "global_messages", msgId)
@@ -1334,13 +1419,11 @@ export default function ChatPage() {
         [`reactions.${myFancyNumber}`]: emoji,
       });
     } catch (e) {
-      console.error("Reaction update:", e);
+      console.error(e);
     }
   };
 
-  // =========================================================================
-  // HIGH-PERFORMANCE VIDEO & LARGE MEDIA ENGINE (CHUNKING UP TO 50MB)
-  // =========================================================================
+  // Video & Large Media Upload Engine
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -1352,12 +1435,11 @@ export default function ChatPage() {
     const reader = new FileReader();
 
     if (isVideo && file.size > 800 * 1024) {
-      // Chunked delivery for videos larger than 800KB
       setUploadProgress(10);
       reader.onload = async () => {
         const base64Data = reader.result as string;
         const mediaId = `vid_${Date.now()}_${Math.floor(Math.random() * 9999)}`;
-        const CHUNK_SIZE = 700 * 1024; // 700KB per slice (Safe for Firestore 1MB ceiling)
+        const CHUNK_SIZE = 700 * 1024;
         const totalChunks = Math.ceil(base64Data.length / CHUNK_SIZE);
 
         for (let i = 0; i < totalChunks; i++) {
@@ -1369,7 +1451,6 @@ export default function ChatPage() {
           setUploadProgress(Math.round(((i + 1) / totalChunks) * 100));
         }
 
-        // Post master message pointing to chunk id
         await sendMessage("[Video Media]", "chunked_video", undefined, {
           mediaId,
           mimeType: file.type || "video/mp4",
@@ -1379,7 +1460,6 @@ export default function ChatPage() {
       };
       reader.readAsDataURL(file);
     } else {
-      // Direct stream for photos & small clips
       reader.onload = async () => {
         const base64Data = reader.result as string;
         const fileType = isVideo ? "video" : isAudio ? "audio" : "image";
@@ -1416,7 +1496,6 @@ export default function ChatPage() {
           sendMessage(base64Audio, "audio");
         };
         reader.readAsDataURL(audioBlob);
-
         stream.getTracks().forEach((track) => track.stop());
       };
 
@@ -1469,7 +1548,7 @@ export default function ChatPage() {
     <div className="flex h-screen w-full bg-black text-slate-100 overflow-hidden font-sans select-none relative">
       <InlineHeartShower trigger={heartTrigger} />
 
-      {/* Mobile Push Notification Permission Prompt Banner */}
+      {/* Mobile Push Notification Permission Prompt */}
       <AnimatePresence>
         {showNotifPrompt && (
           <motion.div
@@ -1647,7 +1726,7 @@ export default function ChatPage() {
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => acceptConnectionRequest(req)}
-                    className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold shadow-md shadow-rose-600/30"
+                    className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold shadow-md"
                   >
                     Accept
                   </button>
@@ -1688,7 +1767,7 @@ export default function ChatPage() {
             </p>
             {recentChats.length === 0 ? (
               <div className="p-4 text-center rounded-2xl border border-dashed border-slate-800 text-slate-500 text-xs">
-                No connections yet. Request a partner using their 10-digit ID!
+                No connections yet. Tap anyone's ID in Global Lounge to connect!
               </div>
             ) : (
               recentChats.map((id) => (
@@ -1770,7 +1849,7 @@ export default function ChatPage() {
                       : "bg-slate-900 text-slate-200 border border-slate-800 rounded-tl-none shadow-sky-950/40"
                   }`}
                 >
-                  {/* Floating Micro-Reaction Drawer on Hover/Tap */}
+                  {/* Floating Micro-Reaction Drawer */}
                   <div
                     className={`absolute -top-3 ${
                       isMe ? "right-2" : "left-2"
@@ -1787,19 +1866,34 @@ export default function ChatPage() {
                     ))}
                   </div>
 
-                  <div className="flex items-center gap-2 mb-1">
+                  {/* SENDER IDENTITY: TAP TO OPEN PROFILE & FRIEND REQUEST */}
+                  <div
+                    onClick={() => inspectUser(msg.senderId, msg.senderName, msg.senderAvatar)}
+                    className="flex items-center gap-2 mb-1.5 cursor-pointer hover:opacity-80 transition-opacity w-fit"
+                    title="Tap to view profile & connect"
+                  >
                     {msg.senderAvatar ? (
-                      <img src={msg.senderAvatar} alt="Avatar" className="w-4 h-4 rounded-full object-cover" />
-                    ) : null}
-                    <p
-                      className={`text-[10px] font-mono font-black opacity-85 ${
+                      <img src={msg.senderAvatar} alt="Avatar" className="w-5 h-5 rounded-full object-cover border border-rose-400/50" />
+                    ) : (
+                      <div className="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center text-[10px] font-bold text-sky-400">
+                        {(msg.senderName || msg.senderId).charAt(0)}
+                      </div>
+                    )}
+                    <span
+                      className={`text-[11px] font-mono font-black underline decoration-sky-500/40 underline-offset-2 ${
                         isMe ? "text-rose-100" : "text-sky-400"
                       }`}
                     >
                       {msg.senderName || msg.senderId}
-                    </p>
+                    </span>
+                    {!isMe && (
+                      <span className="text-[9px] bg-sky-500/20 text-sky-300 px-1 rounded font-bold">
+                        +Add
+                      </span>
+                    )}
                   </div>
 
+                  {/* Tamil Actor Meme */}
                   {msg.type === "meme" && (
                     <div className="rounded-xl overflow-hidden bg-black/80 p-2 space-y-1.5 border border-slate-800 w-44 sm:w-56">
                       <img
@@ -1824,14 +1918,12 @@ export default function ChatPage() {
                     <img src={msg.text} alt="Uploaded attachment" className="w-56 rounded-xl object-cover" />
                   )}
 
-                  {/* Standard Video (<800KB) */}
                   {msg.type === "video" && (
                     <div className="w-56 rounded-xl overflow-hidden bg-black">
                       <video src={msg.text} controls className="w-full max-h-72 rounded-xl" preload="metadata" />
                     </div>
                   )}
 
-                  {/* Chunked Streaming Video (>800KB - 50MB) */}
                   {msg.type === "chunked_video" && msg.mediaId && (
                     <ChunkedVideoPlayer mediaId={msg.mediaId} mimeType={msg.mimeType || "video/mp4"} />
                   )}
@@ -1847,7 +1939,7 @@ export default function ChatPage() {
                     <p className="text-sm font-medium leading-relaxed break-words">{msg.text}</p>
                   )}
 
-                  {/* Render Message Reactions */}
+                  {/* Reactions */}
                   {msg.reactions && Object.keys(msg.reactions).length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1.5">
                       {Object.entries(msg.reactions).map(([uid, emo]) => (
@@ -1967,7 +2059,7 @@ export default function ChatPage() {
               <button
                 onClick={isRecording ? () => stopRecording(false) : startRecording}
                 className={`p-2 sm:p-2.5 rounded-2xl transition-all ${
-                  isRecording ? "bg-rose-600 text-white animate-bounce shadow-lg shadow-rose-600/50" : "text-slate-400 hover:text-sky-400"
+                  isRecording ? "bg-rose-600 text-white animate-bounce shadow-lg" : "text-slate-400 hover:text-sky-400"
                 }`}
                 title="Hold or Tap to Record Audio"
               >
@@ -1977,7 +2069,7 @@ export default function ChatPage() {
 
             <button
               onClick={() => sendMessage(message)}
-              className="p-2.5 sm:p-3 bg-gradient-to-tr from-rose-500 via-sky-500 to-indigo-600 text-white rounded-2xl shadow-lg shadow-rose-500/40 transition-transform active:scale-95 flex-shrink-0"
+              className="p-2.5 sm:p-3 bg-gradient-to-tr from-rose-500 via-sky-500 to-indigo-600 text-white rounded-2xl shadow-lg transition-transform active:scale-95 flex-shrink-0"
             >
               <Send size={18} />
             </button>
@@ -2001,6 +2093,16 @@ export default function ChatPage() {
         myPhone={myPhone}
         onUpdateProfile={handleUpdateProfile}
         onLogout={handleLogout}
+      />
+
+      {/* INSPECT USER PROFILE & SEND FRIEND REQUEST MODAL */}
+      <UserProfileCardModal
+        user={inspectedUser}
+        myId={myFancyNumber}
+        isOpen={!!inspectedUser}
+        onClose={() => setInspectedUser(null)}
+        onRequestFriend={sendConnectionRequest}
+        onOpenDirectChat={selectPrivateChat}
       />
 
       {/* Mobile Bottom Sheet for Tamil Stickers */}
