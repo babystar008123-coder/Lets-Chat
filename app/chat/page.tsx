@@ -59,7 +59,7 @@ import {
 } from "firebase/firestore";
 
 // ==========================================
-// 1. NOTIFICATION CHIME & MOBILE PUSH
+// 1. INLINE AUDIO CHIME & NOTIFICATIONS
 // ==========================================
 function playNotificationChime() {
   try {
@@ -173,7 +173,7 @@ function useInlineAgora() {
 
   const startCall = async (channelName: string, isVideo: boolean = true) => {
     if (!client || !AGORA_APP_ID) {
-      alert("Add NEXT_PUBLIC_AGORA_APP_ID in .env.local to enable live WebRTC calling!");
+      alert("Add NEXT_PUBLIC_AGORA_APP_ID in .env.local to enable live voice & video calls!");
       return;
     }
     try {
@@ -333,7 +333,7 @@ function InlineCallModal({
               <p className="text-base font-bold text-slate-200">Room: {channelName}</p>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-400 text-xs font-semibold">
                 <span className="w-2 h-2 rounded-full bg-sky-400 animate-ping" />
-                {remoteUsers.length > 0 ? "Cyber Stream Connected" : "Connecting..."}
+                {remoteUsers.length > 0 ? "Call Connected" : "Connecting..."}
               </div>
             </div>
           )}
@@ -609,7 +609,7 @@ function MobileMemeBottomSheet({
 }
 
 // ==========================================
-// 7. USER PROFILE CARD MODAL (TAP USER ID)
+// 7. USER PROFILE CARD MODAL
 // ==========================================
 function UserProfileCardModal({
   user,
@@ -656,7 +656,7 @@ function UserProfileCardModal({
 
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold mb-6">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-          <span>Active on Lets Chat</span>
+          <span>Active Friend</span>
         </div>
 
         {!isMe ? (
@@ -750,7 +750,7 @@ function ProfileModal({
               <X size={18} />
             </button>
 
-            <h3 className="text-lg font-black text-white text-center mb-1">Your Permanent Profile</h3>
+            <h3 className="text-lg font-black text-white text-center mb-1">Your Profile</h3>
             <p className="text-xs text-sky-400 font-mono text-center mb-1 font-bold">Fixed ID: {myFancyNumber}</p>
             <p className="text-[11px] text-slate-400 font-mono text-center mb-4">Phone: +91 {myPhone}</p>
 
@@ -1038,7 +1038,7 @@ function ChunkedVideoPlayer({ mediaId, mimeType }: { mediaId: string; mimeType: 
           setLoading(false);
         }
       } catch (err) {
-        console.error("Chunk load error:", err);
+        console.error(err);
         setLoading(false);
       }
     };
@@ -1053,7 +1053,7 @@ function ChunkedVideoPlayer({ mediaId, mimeType }: { mediaId: string; mimeType: 
     return (
       <div className="w-56 h-36 rounded-xl bg-slate-950 flex flex-col items-center justify-center p-3 border border-slate-800 text-center">
         <span className="w-5 h-5 border-2 border-sky-400 border-t-transparent rounded-full animate-spin mb-2" />
-        <p className="text-[10px] text-sky-400 font-mono font-bold">Streaming Media...</p>
+        <p className="text-[10px] text-sky-400 font-mono font-bold">Loading Video...</p>
       </div>
     );
   }
@@ -1066,7 +1066,7 @@ function ChunkedVideoPlayer({ mediaId, mimeType }: { mediaId: string; mimeType: 
 }
 
 // ==========================================
-// 11. MASTER CHAT WORKSPACE
+// 11. MASTER CHAT WORKSPACE (BI-DIRECTIONAL SYNC)
 // ==========================================
 interface Message {
   id: string;
@@ -1105,7 +1105,9 @@ export default function ChatPage() {
     isGlobal: true,
     isAccepted: true,
   });
-  const [recentChats, setRecentChats] = useState<string[]>([]);
+
+  // Dynamic Friends List (Synced Bi-directionally via Firestore)
+  const [friendsList, setFriendsList] = useState<string[]>([]);
   const [callActive, setCallActive] = useState(false);
   const [callIsVideo, setCallIsVideo] = useState(true);
   const [heartTrigger, setHeartTrigger] = useState(0);
@@ -1147,7 +1149,7 @@ export default function ChatPage() {
     toggleVideo,
   } = useInlineAgora();
 
-  // Check Notification Permission
+  // Notification Permission Check
   useEffect(() => {
     if (typeof window !== "undefined" && "Notification" in window) {
       if (Notification.permission === "default") {
@@ -1168,7 +1170,7 @@ export default function ChatPage() {
     }
   };
 
-  // Auth & Permanent Identity
+  // Auth & Permanent Identity Init
   useEffect(() => {
     const savedPhone = localStorage.getItem("lovechat_perm_phone");
     const savedId = localStorage.getItem("lovechat_perm_id");
@@ -1185,47 +1187,58 @@ export default function ChatPage() {
     } else {
       setIsAuthModalOpen(true);
     }
-
-    const recents = JSON.parse(localStorage.getItem("lovechat_recents") || "[]");
-    setRecentChats(recents);
   }, []);
 
-  const handleAuthSuccess = (userObj: { phone: string; seqId: string; name: string; avatar: string }) => {
-    localStorage.setItem("lovechat_perm_phone", userObj.phone);
-    localStorage.setItem("lovechat_perm_id", userObj.seqId);
-    localStorage.setItem("lovechat_perm_name", userObj.name);
-    localStorage.setItem("lovechat_perm_avatar", userObj.avatar);
-
-    setMyPhone(userObj.phone);
-    setMyFancyNumber(userObj.seqId);
-    setMyName(userObj.name);
-    setMyAvatar(userObj.avatar);
-    setIsAuthModalOpen(false);
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem("lovechat_perm_phone");
-    localStorage.removeItem("lovechat_perm_id");
-    localStorage.removeItem("lovechat_perm_name");
-    localStorage.removeItem("lovechat_perm_avatar");
-    setIsProfileOpen(false);
-    setIsAuthModalOpen(true);
-  };
-
-  // Listen for Incoming Requests
+  // =========================================================================
+  // BI-DIRECTIONAL REAL-TIME FRIEND SYNC
+  // Listen for both:
+  // 1) Requests sent TO me that are pending or accepted
+  // 2) Requests sent FROM me that were ACCEPTED by the other person!
+  // =========================================================================
   useEffect(() => {
     if (!myFancyNumber) return;
 
-    const qReq = query(collection(db, "chat_requests"), where("to", "==", myFancyNumber), where("status", "==", "pending"));
-    const unsubReq = onSnapshot(qReq, (snap) => {
+    // 1. Incoming Pending Requests
+    const qIncoming = query(
+      collection(db, "chat_requests"),
+      where("to", "==", myFancyNumber),
+      where("status", "==", "pending")
+    );
+    const unsubIncoming = onSnapshot(qIncoming, (snap) => {
       const reqs = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<ChatRequest, "id">) }));
       if (reqs.length > incomingRequests.length) {
-        triggerMobileSystemNotification("New Chat Request! 💌", `${reqs[0]?.from} wants to connect with you.`);
+        triggerMobileSystemNotification("New Friend Request! 💌", `${reqs[0]?.from} wants to connect with you.`);
       }
       setIncomingRequests(reqs);
     });
 
-    return () => unsubReq();
+    // 2. Friends who accepted requests I SENT to them!
+    const qSentAccepted = query(
+      collection(db, "chat_requests"),
+      where("from", "==", myFancyNumber),
+      where("status", "==", "accepted")
+    );
+    const unsubSentAccepted = onSnapshot(qSentAccepted, (snap) => {
+      const acceptedPartners = snap.docs.map((d) => d.data().to);
+      setFriendsList((prev) => Array.from(new Set([...prev, ...acceptedPartners])));
+    });
+
+    // 3. Friends whose requests I ACCEPTED!
+    const qReceivedAccepted = query(
+      collection(db, "chat_requests"),
+      where("to", "==", myFancyNumber),
+      where("status", "==", "accepted")
+    );
+    const unsubReceivedAccepted = onSnapshot(qReceivedAccepted, (snap) => {
+      const acceptedPartners = snap.docs.map((d) => d.data().from);
+      setFriendsList((prev) => Array.from(new Set([...prev, ...acceptedPartners])));
+    });
+
+    return () => {
+      unsubIncoming();
+      unsubSentAccepted();
+      unsubReceivedAccepted();
+    };
   }, [myFancyNumber, incomingRequests.length]);
 
   // Listen for Messages in Active Room
@@ -1278,7 +1291,7 @@ export default function ChatPage() {
     return () => unsubscribe();
   }, [activeChat, myFancyNumber]);
 
-  // Inspect User Profile when Tapping their Avatar / Name in Chat
+  // Inspect User Profile when Tapping their Avatar / Name
   const inspectUser = async (userId: string, currentName?: string, currentAvatar?: string) => {
     try {
       const userDoc = await getDoc(doc(db, "users", userId));
@@ -1305,7 +1318,28 @@ export default function ChatPage() {
     }
   };
 
-  // Update Profile
+  const handleAuthSuccess = (userObj: { phone: string; seqId: string; name: string; avatar: string }) => {
+    localStorage.setItem("lovechat_perm_phone", userObj.phone);
+    localStorage.setItem("lovechat_perm_id", userObj.seqId);
+    localStorage.setItem("lovechat_perm_name", userObj.name);
+    localStorage.setItem("lovechat_perm_avatar", userObj.avatar);
+
+    setMyPhone(userObj.phone);
+    setMyFancyNumber(userObj.seqId);
+    setMyName(userObj.name);
+    setMyAvatar(userObj.avatar);
+    setIsAuthModalOpen(false);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("lovechat_perm_phone");
+    localStorage.removeItem("lovechat_perm_id");
+    localStorage.removeItem("lovechat_perm_name");
+    localStorage.removeItem("lovechat_perm_avatar");
+    setIsProfileOpen(false);
+    setIsAuthModalOpen(true);
+  };
+
   const handleUpdateProfile = (newName: string, newAvatar: string) => {
     setMyName(newName);
     setMyAvatar(newAvatar);
@@ -1331,7 +1365,7 @@ export default function ChatPage() {
         status: "pending",
         createdAt: serverTimestamp(),
       });
-      alert(`Chat request sent to ${partnerId}! When they accept, your conversation will open.`);
+      alert(`Friend request sent to ${partnerId}! When they accept, your private chat will unlock immediately on both phones.`);
       setTargetId("");
     } catch (err) {
       console.error(err);
@@ -1345,12 +1379,7 @@ export default function ChatPage() {
       const roomId = [myFancyNumber, req.from].sort().join("_");
       setActiveChat({ id: roomId, name: req.from, isGlobal: false, isAccepted: true });
 
-      if (!recentChats.includes(req.from)) {
-        const updated = [req.from, ...recentChats];
-        setRecentChats(updated);
-        localStorage.setItem("lovechat_recents", JSON.stringify(updated));
-      }
-
+      setFriendsList((prev) => Array.from(new Set([...prev, req.from])));
       setIncomingRequests((prev) => prev.filter((r) => r.id !== req.id));
     } catch (err) {
       console.error(err);
@@ -1372,12 +1401,6 @@ export default function ChatPage() {
     setActiveChat({ id: roomId, name: partnerId, isGlobal: false, isAccepted: true });
     setTargetId("");
     setIsDrawerOpen(false);
-
-    if (!recentChats.includes(partnerId)) {
-      const updated = [partnerId, ...recentChats];
-      setRecentChats(updated);
-      localStorage.setItem("lovechat_recents", JSON.stringify(updated));
-    }
   };
 
   const sendMessage = async (
@@ -1584,7 +1607,7 @@ export default function ChatPage() {
         )}
       </AnimatePresence>
 
-      {/* Floating In-App Cyber Notification Card */}
+      {/* Floating In-App Notification Card */}
       <AnimatePresence>
         {activeToast && (
           <motion.div
@@ -1608,7 +1631,7 @@ export default function ChatPage() {
         )}
       </AnimatePresence>
 
-      {/* Cyber Background Glows */}
+      {/* Clean Ocean Blue & Warm Rose Glows */}
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-sky-500/10 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-rose-500/15 rounded-full blur-[140px] pointer-events-none" />
 
@@ -1649,7 +1672,7 @@ export default function ChatPage() {
                   {myName || "Lets Chat"}
                 </h1>
                 <p className="text-[10px] text-sky-400 font-bold tracking-widest uppercase">
-                  Cyber Love Matrix
+                  Friends & Love Chat
                 </p>
               </div>
             </div>
@@ -1715,7 +1738,7 @@ export default function ChatPage() {
           <div className="p-3 bg-rose-500/10 border-b border-rose-500/30">
             <div className="flex items-center gap-1.5 mb-2 text-rose-400 font-bold text-xs">
               <Bell size={14} className="animate-bounce" />
-              <span>Incoming Connection Requests</span>
+              <span>Incoming Friend Requests</span>
             </div>
             {incomingRequests.map((req) => (
               <div key={req.id} className="p-2.5 rounded-xl bg-slate-900 border border-rose-500/40 flex items-center justify-between mb-2">
@@ -1763,14 +1786,14 @@ export default function ChatPage() {
 
           <div className="pt-3">
             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2 mb-2">
-              Connected Friends & Lovers
+              Friends & Contacts
             </p>
-            {recentChats.length === 0 ? (
+            {friendsList.length === 0 ? (
               <div className="p-4 text-center rounded-2xl border border-dashed border-slate-800 text-slate-500 text-xs">
-                No connections yet. Tap anyone's ID in Global Lounge to connect!
+                No friends yet. Tap anyone's ID in Global Lounge to send a request!
               </div>
             ) : (
-              recentChats.map((id) => (
+              friendsList.map((id) => (
                 <div
                   key={id}
                   onClick={() => selectPrivateChat(id)}
@@ -1809,7 +1832,7 @@ export default function ChatPage() {
               <h2 className="text-sm font-black text-slate-100 leading-tight">{activeChat.name}</h2>
               <p className="text-[10px] text-sky-400 font-bold flex items-center gap-1 mt-0.5">
                 <Radio size={10} className="animate-pulse" />
-                Cyber Matrix Connected
+                Live Room
               </p>
             </div>
           </div>
@@ -1866,11 +1889,11 @@ export default function ChatPage() {
                     ))}
                   </div>
 
-                  {/* SENDER IDENTITY: TAP TO OPEN PROFILE & FRIEND REQUEST */}
+                  {/* SENDER IDENTITY: TAP TO OPEN PROFILE & SEND FRIEND REQUEST */}
                   <div
                     onClick={() => inspectUser(msg.senderId, msg.senderName, msg.senderAvatar)}
                     className="flex items-center gap-2 mb-1.5 cursor-pointer hover:opacity-80 transition-opacity w-fit"
-                    title="Tap to view profile & connect"
+                    title="Tap to view profile & add friend"
                   >
                     {msg.senderAvatar ? (
                       <img src={msg.senderAvatar} alt="Avatar" className="w-5 h-5 rounded-full object-cover border border-rose-400/50" />
@@ -1888,7 +1911,7 @@ export default function ChatPage() {
                     </span>
                     {!isMe && (
                       <span className="text-[9px] bg-sky-500/20 text-sky-300 px-1 rounded font-bold">
-                        +Add
+                        +Friend
                       </span>
                     )}
                   </div>
@@ -1976,7 +1999,7 @@ export default function ChatPage() {
             <div className="flex items-center gap-2.5">
               <span className="w-4 h-4 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
               <p className="text-xs font-mono font-bold text-sky-300">
-                Streaming Video Payload... {uploadProgress}%
+                Streaming Video... {uploadProgress}%
               </p>
             </div>
             <span className="text-[10px] text-slate-400 font-mono">Do not close app</span>
@@ -1988,7 +2011,7 @@ export default function ChatPage() {
           <div className="mx-3 mb-2 p-2.5 rounded-2xl bg-gradient-to-r from-rose-600 to-sky-600 text-white flex items-center justify-between shadow-xl animate-pulse">
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full bg-white animate-ping" />
-              <span className="text-xs font-bold font-mono">Recording Live Audio... {recordSec}s</span>
+              <span className="text-xs font-bold font-mono">Recording Voice Note... {recordSec}s</span>
             </div>
             <div className="flex items-center gap-2">
               <button
