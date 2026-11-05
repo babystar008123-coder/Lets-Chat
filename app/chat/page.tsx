@@ -116,7 +116,6 @@ function triggerMobileSystemNotification(title: string, body: string, icon?: str
             body,
             icon: icon || "/favicon.ico",
             badge: "/favicon.ico",
-            vibrate: [200, 100, 200],
           });
         });
       }
