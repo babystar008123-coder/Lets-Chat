@@ -95,23 +95,24 @@ function triggerMobileSystemNotification(title: string, body: string, icon?: str
 
   if (Notification.permission === "granted") {
     try {
-      const notif = new Notification(title, {
+      const options: any = {
         body,
         icon: icon || "/favicon.ico",
         badge: "/favicon.ico",
         tag: "lets-chat-message",
-        vibrate: [200, 100, 200] as any,
-      } as any);
+        vibrate: [200, 100, 200],
+      };
+
+      const notif = new Notification(title, options);
 
       notif.onclick = () => {
         window.focus();
         notif.close();
       };
     } catch (e) {
-      // In case mobile requires serviceWorker registration
       if (navigator.serviceWorker && navigator.serviceWorker.ready) {
         navigator.serviceWorker.ready.then((reg) => {
-          reg.showNotification(title, {
+          (reg as any).showNotification(title, {
             body,
             icon: icon || "/favicon.ico",
             badge: "/favicon.ico",
@@ -122,7 +123,6 @@ function triggerMobileSystemNotification(title: string, body: string, icon?: str
     }
   }
 }
-
 // ==========================================
 // 2. INLINE AGORA WEBRTC ENGINE
 // ==========================================
