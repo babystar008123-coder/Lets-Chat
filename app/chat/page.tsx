@@ -100,7 +100,7 @@ function triggerMobileSystemNotification(title: string, body: string, icon?: str
         icon: icon || "/favicon.ico",
         badge: "/favicon.ico",
         tag: "lets-chat-message",
-        vibrate: [200, 100, 200],
+        
       };
 
       const notif = new Notification(title, options);
