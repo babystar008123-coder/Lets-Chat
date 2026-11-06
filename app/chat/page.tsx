@@ -43,7 +43,10 @@ import {
   Users,
   Trash2,
   Shield,
-  BellRing,
+  MoreVertical,
+  Palette,
+  FileText,
+  Image as ImageIcon,
 } from "lucide-react";
 import { db } from "@/lib/firebase";
 import {
@@ -64,7 +67,7 @@ import {
 } from "firebase/firestore";
 
 // ==========================================
-// 1. MOBILE STATUS BAR BACKGROUND PUSH NOTIFICATIONS
+// 1. MOBILE NATIVE BACKGROUND NOTIFICATIONS
 // ==========================================
 function playNotificationChime() {
   try {
@@ -92,25 +95,21 @@ function playNotificationChime() {
   }
 }
 
-// Triggers Android & Windows Native Status Bar Notification
 function triggerMobileStatusBarNotification(title: string, body: string, icon?: string) {
   playNotificationChime();
-
   if (typeof window === "undefined" || !("Notification" in window)) return;
 
   if (Notification.permission === "granted") {
-    // 1. Service Worker Notification (Works when Chrome is completely closed / screen locked)
     if (navigator.serviceWorker) {
-      navigator.serviceWorker.ready.then((registration) => {
-        registration.showNotification(title, {
+      navigator.serviceWorker.ready.then((reg) => {
+        reg.showNotification(title, {
           body,
           icon: icon || "/favicon.ico",
           badge: "/favicon.ico",
-          tag: "lets-chat-status-notification",
+          tag: "lets-chat-msg",
           renotify: true,
         } as any);
       }).catch(() => {
-        // Fallback to standard window Notification
         new Notification(title, { body, icon: icon || "/favicon.ico" });
       });
     } else {
@@ -266,13 +265,13 @@ function InlineCallModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-2xl p-3 sm:p-6">
-      <div className="relative w-full max-w-4xl h-[85vh] sm:h-[80vh] bg-slate-950 rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(56,189,248,0.2)] flex flex-col justify-between border border-sky-500/30">
+      <div className="relative w-full max-w-4xl h-[85vh] sm:h-[80vh] bg-slate-950 rounded-3xl overflow-hidden shadow-2xl flex flex-col justify-between border border-sky-500/30">
         <div className="relative flex-1 w-full bg-black flex items-center justify-center overflow-hidden">
           {remoteUsers.length > 0 && isVideo ? (
             <div ref={remoteRef} className="w-full h-full object-cover" />
           ) : (
             <div className="text-center text-slate-100 space-y-3 p-4">
-              <div className="w-24 h-24 rounded-3xl bg-gradient-to-tr from-rose-500 via-sky-500 to-indigo-600 flex items-center justify-center mx-auto text-3xl font-black text-white shadow-[0_0_30px_rgba(244,63,94,0.6)] animate-pulse">
+              <div className="w-24 h-24 rounded-3xl bg-gradient-to-tr from-rose-500 via-sky-500 to-indigo-600 flex items-center justify-center mx-auto text-3xl font-black text-white shadow-lg animate-pulse">
                 LC
               </div>
               <p className="text-base font-bold text-slate-200">Call: {channelName}</p>
@@ -314,7 +313,7 @@ function InlineCallModal({
 
           <button
             onClick={onEndCall}
-            className="p-4 rounded-2xl bg-red-600 hover:bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.5)] transition-transform active:scale-95"
+            className="p-4 rounded-2xl bg-red-600 hover:bg-red-500 text-white shadow-lg transition-transform active:scale-95"
           >
             <PhoneOff size={20} />
           </button>
@@ -325,173 +324,180 @@ function InlineCallModal({
 }
 
 // ==========================================
-// 4. EXTENDED GIPHY TAMIL & ENGLISH STICKERS VAULT
+// 4. RICH TAMIL MEME TEMPLATES & GIPHY VAULT (SEARCHMEMES.IN + PINTEREST)
 // ==========================================
 interface StickerItem {
   id: string;
   url: string;
   name: string;
+  dialogue?: string;
   category: "vadivelu" | "mass" | "dialogues" | "english" | "love";
 }
 
-const GIPHY_TAMIL_MEME_VAULT: StickerItem[] = [
-  // Vadivelu Comedy Special
+const RICH_TAMIL_MEME_VAULT: StickerItem[] = [
+  // Vadivelu Comedy Classics
   {
-    id: "g_vadi_laugh",
+    id: "sm_vadi_kaipulla",
     url: "https://media3.giphy.com/media/v1.Y2lkPTZjMDliOTUyZGNkcGpic3ZuczRkaWxneWF1MmVheWFuZGJiN2RkeTZ4ZnFudm11YyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/YSdvQxlheVHxQw5hEa/200.gif",
-    name: "Vadivelu Laugh",
-    category: "vadivelu",
-  },
-  {
-    id: "g_vadi_shock",
-    url: "https://media3.giphy.com/media/v1.Y2lkPTZjMDliOTUyNnEzanNlZHJibTYwYjZzazd3NG55OW5zY3g3cmhkeHM4NnVybXU4MyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/ESYT0mj1mUyrjr5kDW/200_d.gif",
-    name: "Vadivelu Shock",
-    category: "vadivelu",
-  },
-  {
-    id: "g_vadi_sing",
-    url: "https://media4.giphy.com/media/v1.Y2lkPTZjMDliOTUyd2I5Mjk3OTl4eHA1Z3hpbjBsejRyMHdoYXkzYXNucTk5aTNpODk3MCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/YuWeSpstyR92U5cP0y/200w.gif",
-    name: "Singing Vadi",
-    category: "vadivelu",
-  },
-  {
-    id: "g_vadi_kaipulla",
-    url: "https://images.unsplash.com/photo-1544717305-2782549b5136?w=250&auto=format&fit=crop&q=80",
     name: "Kaipulla",
+    dialogue: "Venaam... Valikidhu... Azhudhuduven!",
     category: "vadivelu",
   },
   {
-    id: "g_vadi_aappu",
-    url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=250&auto=format&fit=crop&q=80",
-    name: "Aappu Vechittaanya",
+    id: "sm_vadi_shock",
+    url: "https://media3.giphy.com/media/v1.Y2lkPTZjMDliOTUyNnEzanNlZHJibTYwYjZzazd3NG55OW5zY3g3cmhkeHM4NnVybXU4MyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/ESYT0mj1mUyrjr5kDW/200_d.gif",
+    name: "Naan Shock Aayitten",
+    dialogue: "Naan apdiye shock aayitten!",
     category: "vadivelu",
   },
   {
-    id: "g_vadi_nesamani",
+    id: "sm_vadi_nesamani",
     url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=250&auto=format&fit=crop&q=80",
     name: "Nesamani Aani",
+    dialogue: "Aani pudunga venaam!",
     category: "vadivelu",
   },
   {
-    id: "g_vadi_crying",
-    url: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=250&auto=format&fit=crop&q=80",
-    name: "Valikidhu Azhudhuduven",
+    id: "sm_vadi_aappu",
+    url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=250&auto=format&fit=crop&q=80",
+    name: "Vechittanya Aappu",
+    dialogue: "Maapla! Vechittanya aappu!",
     category: "vadivelu",
   },
   {
-    id: "g_vadi_run",
-    url: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=250&auto=format&fit=crop&q=80",
+    id: "sm_vadi_building",
+    url: "https://images.unsplash.com/photo-1544717305-2782549b5136?w=250&auto=format&fit=crop&q=80",
     name: "Building Strong",
+    dialogue: "Building strong-u, basement weak-u!",
+    category: "vadivelu",
+  },
+  {
+    id: "sm_vadi_sameblood",
+    url: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=250&auto=format&fit=crop&q=80",
+    name: "Why Blood",
+    dialogue: "Why blood? Same blood!",
+    category: "vadivelu",
+  },
+  {
+    id: "sm_vadi_sing",
+    url: "https://media4.giphy.com/media/v1.Y2lkPTZjMDliOTUyd2I5Mjk3OTl4eHA1Z3hpbjBsejRyMHdoYXkzYXNucTk5aTNpODk3MCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/YuWeSpstyR92U5cP0y/200w.gif",
+    name: "Sing In Rain",
+    dialogue: "Sing in the rain...",
     category: "vadivelu",
   },
 
   // Tamil Mass & Punch (Rajini, Vijay, Ajith, Kamal)
   {
-    id: "g_rajini_baasha",
+    id: "sm_rajini_baasha",
     url: "https://media3.giphy.com/media/v1.Y2lkPTZjMDliOTUycWc4eW8wMGt5ZWN3dnZ1MWFvZHBsNW92cnNkN3cybnN6aXh3emxucyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/3S7dHcfGYlxvqjtHqn/200w.gif",
     name: "Rajini Baasha",
+    dialogue: "Naan oru thadava sonna, nooru thadava sonna maadhiri!",
     category: "mass",
   },
   {
-    id: "g_vijay_master",
+    id: "sm_vijay_ghilli",
     url: "https://media2.giphy.com/avatars/whistleadi/pnrBneA9iDRq.png",
-    name: "Vijay Waiting",
+    name: "All Are Welcome",
+    dialogue: "All are welcome! I am waiting!",
     category: "mass",
   },
   {
-    id: "g_ajith_mankatha",
+    id: "sm_ajith_mankatha",
     url: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=250&auto=format&fit=crop&q=80",
-    name: "Ajith Mankatha",
+    name: "Mankatha DA",
+    dialogue: "This is my game, money money!",
     category: "mass",
   },
   {
-    id: "g_kamal_vikram",
+    id: "sm_kamal_vikram",
     url: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=250&auto=format&fit=crop&q=80",
-    name: "Kamal Vikram",
+    name: "Aarambikkalaangala",
+    dialogue: "Aarambikkalaangala? Paathukalam!",
     category: "mass",
   },
   {
-    id: "g_rajini_padayappa",
+    id: "sm_rajini_padayappa",
     url: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=250&auto=format&fit=crop&q=80",
-    name: "En Vazhi Thani Vazhi",
+    name: "Thani Vazhi",
+    dialogue: "En vazhi thani vazhi!",
     category: "mass",
   },
 
-  // Tamil Dialogues & Counter
+  // Dialogues & Counter
   {
-    id: "g_gounda_arasiyal",
+    id: "sm_gounda_arasiyal",
     url: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=250&auto=format&fit=crop&q=80",
     name: "Arasiyalla Idhellam",
+    dialogue: "Arasiyalla idhellam saadharanamappa!",
     category: "dialogues",
   },
   {
-    id: "g_santha_nanba",
+    id: "sm_santha_nanba",
     url: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=250&auto=format&fit=crop&q=80",
-    name: "Nanbenda Santhanam",
+    name: "Nanbenda",
+    dialogue: "Nanbenda! Eppavume un kooda!",
     category: "dialogues",
   },
   {
-    id: "g_vivek_comedy",
+    id: "sm_ramar_ennama",
     url: "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=250&auto=format&fit=crop&q=80",
-    name: "Innaiku Setha Vivek",
+    name: "Ennama Ippadi",
+    dialogue: "Ennama ippadi panreengale ma!",
     category: "dialogues",
   },
   {
-    id: "g_gounda_soppana",
+    id: "sm_prakash_nakkal",
     url: "https://images.unsplash.com/photo-1463453091185-61582044d556?w=250&auto=format&fit=crop&q=80",
-    name: "Soppana Sundari",
+    name: "Nakkal Smile",
+    dialogue: "Chellatha... Nakkal la!",
     category: "dialogues",
   },
 
   // English & Trending Memes
   {
-    id: "g_cat_vibing",
+    id: "sm_cat_vibing",
     url: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbnZhcXpnNDhhM2p5Z2g4NGgxcXN5Y3JtNWd2eG9mN3Z0eXVhOTM1eSZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/MDJ9IbxxvDUQM/giphy.gif",
     name: "Cat Vibing",
     category: "english",
   },
   {
-    id: "g_doge_wow",
+    id: "sm_doge_wow",
     url: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExZ29va3I3eGZjc3B0Mnl5N25vaHhyY3k2MWVxdWwxcjR6YWw2MXB2dyZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/9C1nyePmmDlS552Emu/giphy.gif",
     name: "Doge Wow",
     category: "english",
   },
   {
-    id: "g_pepe_sad",
+    id: "sm_pepe_frog",
     url: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHIxb3p1a2gxdnI2Z2JldDN5aXcxZWt0dzNreTVzZHA2NmN2c3l1eiZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/13CoXDiaCcCoyk/giphy.gif",
-    name: "Pepe Frog",
+    name: "Pepe Mood",
     category: "english",
   },
   {
-    id: "g_popcat_click",
+    id: "sm_popcat",
     url: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3Q0bWk2dmk5N2pmeWp1cTZxcHRnd2Q4ZjhpZHVxdmdwbWVtc2ptYiZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/osAcIGJnJ0sjpp3Qg8/giphy.gif",
-    name: "Popcat",
+    name: "Popcat Mouth",
     category: "english",
   },
 
   // Love & Romance
   {
-    id: "g_love_tamizh",
+    id: "sm_love_tamizh",
     url: "https://media3.giphy.com/media/v1.Y2lkPTZjMDliOTUyaXE3MGk2dDAybnpmaHpheGI0a3Ezdzlpb3cwd2diYTVvNTl1OWJrcSZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/ddxgdaMGp1GVZTOHS6/giphy.gif",
     name: "Tamizh Love",
     category: "love",
   },
   {
-    id: "g_surya_vtv",
+    id: "sm_surya_vtv",
     url: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=250&auto=format&fit=crop&q=80",
     name: "Jessie VTV",
+    dialogue: "En melodiku lyrical partner!",
     category: "love",
   },
   {
-    id: "g_dhanush_3",
+    id: "sm_dhanush_3",
     url: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=250&auto=format&fit=crop&q=80",
     name: "Kannazhaga 3",
-    category: "love",
-  },
-  {
-    id: "g_vijay_kushi",
-    url: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=250&auto=format&fit=crop&q=80",
-    name: "Chellame Kushi",
+    dialogue: "Kannazhaga... Kaalazhaga...",
     category: "love",
   },
 ];
@@ -508,11 +514,11 @@ function CompactGiphyStickerDrawer({
   const [folder, setFolder] = useState<"vadivelu" | "mass" | "dialogues" | "english" | "love">("vadivelu");
   const [search, setSearch] = useState("");
 
-  const filtered = GIPHY_TAMIL_MEME_VAULT.filter(
+  const filtered = RICH_TAMIL_MEME_VAULT.filter(
     (s) =>
       s.category === folder &&
       (s.name.toLowerCase().includes(search.toLowerCase()) ||
-        s.category.toLowerCase().includes(search.toLowerCase()))
+        (s.dialogue && s.dialogue.toLowerCase().includes(search.toLowerCase())))
   );
 
   return (
@@ -572,14 +578,14 @@ function CompactGiphyStickerDrawer({
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="ஸ்டிக்கர் தேடுங்கள் (வடிவேலு, Rajini, Cat, etc)..."
+                  placeholder="ஸ்டிக்கர் அல்லது டயலாக் தேடுங்கள்..."
                   className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl bg-slate-900 border border-slate-800 text-white placeholder-slate-500 outline-none focus:border-sky-500"
                 />
                 <Search size={14} className="absolute left-2.5 top-2 text-slate-500" />
               </div>
             </div>
 
-            {/* High-Density 5-Column Compact Grid */}
+            {/* High-Density 4-5 Column Compact Grid */}
             <div className="p-2.5 grid grid-cols-4 sm:grid-cols-5 gap-2 overflow-y-auto max-h-[50vh]">
               {filtered.map((item) => (
                 <div
@@ -995,7 +1001,7 @@ function ChunkedVideoPlayer({ mediaId, mimeType }: { mediaId: string; mimeType: 
 }
 
 // ==========================================
-// 8. MASTER PRIVATE CHAT WORKSPACE
+// 8. MASTER CHAT WORKSPACE
 // ==========================================
 interface UserItem {
   id: string;
@@ -1032,7 +1038,6 @@ export default function ChatPage() {
   const [myPhone, setMyPhone] = useState("");
 
   const [targetSearchId, setTargetSearchId] = useState("");
-
   const [acceptedFriends, setAcceptedFriends] = useState<UserItem[]>([]);
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
   const [activePartner, setActivePartner] = useState<UserItem | null>(null);
@@ -1043,6 +1048,11 @@ export default function ChatPage() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [showStickers, setShowStickers] = useState(false);
+
+  // Three-dots menu & Media view modal
+  const [showMenu, setShowMenu] = useState(false);
+  const [showMediaModal, setShowMediaModal] = useState(false);
+  const [chatTheme, setChatTheme] = useState<"neon" | "blue" | "emerald">("neon");
 
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [activeToast, setActiveToast] = useState<{ sender: string; text: string; userObj: UserItem } | null>(null);
@@ -1055,6 +1065,7 @@ export default function ChatPage() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -1068,7 +1079,7 @@ export default function ChatPage() {
     toggleVideo,
   } = useInlineAgora();
 
-  // Register Service Worker on Load for Mobile Status Bar Push Notifications
+  // Register Service Worker on Load for Mobile Notifications
   useEffect(() => {
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js").catch((err) => {
@@ -1106,7 +1117,6 @@ export default function ChatPage() {
   useEffect(() => {
     if (!myFancyNumber) return;
 
-    // 1. Pending Friend Requests sent TO me
     const qPending = query(
       collection(db, "chat_requests"),
       where("to", "==", myFancyNumber),
@@ -1130,7 +1140,6 @@ export default function ChatPage() {
       setPendingRequests(list);
     });
 
-    // 2. Mutual accepted friends (I sent and they accepted)
     const qSent = query(
       collection(db, "chat_requests"),
       where("from", "==", myFancyNumber),
@@ -1141,7 +1150,6 @@ export default function ChatPage() {
       loadFriendProfiles(partnerIds);
     });
 
-    // 3. Mutual accepted friends (They sent and I accepted)
     const qReceived = query(
       collection(db, "chat_requests"),
       where("to", "==", myFancyNumber),
@@ -1209,14 +1217,13 @@ export default function ChatPage() {
       if (lastMsg && lastMsg.senderId !== myFancyNumber) {
         const previewText =
           lastMsg.type === "sticker"
-            ? "Sent a GIPHY Sticker"
+            ? "Sent a Tamil Meme"
             : lastMsg.type === "video" || lastMsg.type === "chunked_video"
             ? "Sent a Video"
             : lastMsg.type === "audio"
             ? "Sent a Voice Note"
             : lastMsg.text;
 
-        // Triggers native mobile status bar notification when browser is minimized/locked/exited
         triggerMobileStatusBarNotification(
           `${lastMsg.senderName || lastMsg.senderId} (ID: ${lastMsg.senderId})`,
           previewText,
@@ -1336,6 +1343,7 @@ export default function ChatPage() {
       const deletePromises = snap.docs.map((docSnap) => deleteDoc(docSnap.ref));
       await Promise.all(deletePromises);
       alert("Chat history cleared successfully.");
+      setShowMenu(false);
     } catch (err) {
       console.error(err);
       alert("Failed to clear chat history.");
@@ -1452,6 +1460,7 @@ export default function ChatPage() {
     }
 
     if (fileInputRef.current) fileInputRef.current.value = "";
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
     if (audioInputRef.current) audioInputRef.current.value = "";
   };
 
@@ -1524,6 +1533,9 @@ export default function ChatPage() {
     setCallActive(false);
   };
 
+  // Media, Links & Docs for active room
+  const mediaMessages = messages.filter((m) => m.type === "image" || m.type === "video" || m.type === "chunked_video");
+
   return (
     <div className="fixed inset-0 h-[100dvh] w-full overflow-hidden bg-black text-slate-100 font-sans select-none flex flex-row">
       {/* Floating In-App Toast */}
@@ -1537,7 +1549,7 @@ export default function ChatPage() {
               setActivePartner(activeToast.userObj);
               setActiveToast(null);
             }}
-            className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900/90 border border-sky-500/60 shadow-[0_0_25px_rgba(56,189,248,0.4)] backdrop-blur-xl px-4 py-2.5 rounded-2xl flex items-center gap-3 cursor-pointer max-w-sm w-[90%]"
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900/90 border border-sky-500/60 shadow-xl backdrop-blur-xl px-4 py-2.5 rounded-2xl flex items-center gap-3 cursor-pointer max-w-sm w-[90%]"
           >
             <div className="w-8 h-8 rounded-full bg-rose-500 flex items-center justify-center text-white text-xs font-bold shadow-md">
               <Bell size={14} className="animate-bounce" />
@@ -1553,9 +1565,8 @@ export default function ChatPage() {
         )}
       </AnimatePresence>
 
-      {/* Cyber Background Glows */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-sky-500/10 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-rose-500/15 rounded-full blur-[140px] pointer-events-none" />
+      {/* Background Aura */}
+      <div className={`absolute top-0 left-1/4 w-96 h-96 ${chatTheme === "blue" ? "bg-sky-500/15" : chatTheme === "emerald" ? "bg-emerald-500/15" : "bg-rose-500/15"} rounded-full blur-[140px] pointer-events-none transition-colors duration-500`} />
 
       {/* CONFIDENTIAL CONTACTS SIDEBAR */}
       <aside
@@ -1664,7 +1675,7 @@ export default function ChatPage() {
           </div>
         )}
 
-        {/* Accepted Contacts Directory (Empty by default) */}
+        {/* Accepted Contacts Directory */}
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
           <div className="flex items-center gap-1.5 px-1 text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">
             <ShieldCheck size={14} className="text-sky-400" />
@@ -1738,8 +1749,8 @@ export default function ChatPage() {
           </div>
         ) : (
           <>
-            {/* Header with Back, Clear Chat, Voice and Video Call */}
-            <header className="h-14 sm:h-16 flex items-center justify-between px-3 sm:px-6 bg-slate-950 border-b border-slate-900 z-10 flex-shrink-0">
+            {/* Header with Calls & Three-Dots Menu */}
+            <header className="h-14 sm:h-16 flex items-center justify-between px-3 sm:px-6 bg-slate-950 border-b border-slate-900 z-20 flex-shrink-0">
               <div className="flex items-center gap-2.5 sm:gap-3">
                 <button
                   onClick={() => setActivePartner(null)}
@@ -1761,14 +1772,7 @@ export default function ChatPage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <button
-                  onClick={handleDeleteChatHistory}
-                  className="p-2 sm:p-2.5 rounded-xl bg-slate-900 hover:bg-red-950/40 text-slate-400 hover:text-red-400 border border-slate-800 transition-all"
-                  title="Clear Chat History"
-                >
-                  <Trash2 size={16} />
-                </button>
+              <div className="flex items-center gap-1.5 sm:gap-2 relative">
                 <button
                   onClick={() => initiateCall(false)}
                   className="p-2 sm:p-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-sky-500 text-slate-300 hover:text-sky-400 transition-all active:scale-95"
@@ -1783,6 +1787,72 @@ export default function ChatPage() {
                 >
                   <Video size={16} />
                 </button>
+
+                {/* Three Dots Menu Button */}
+                <button
+                  onClick={() => setShowMenu(!showMenu)}
+                  className="p-2 sm:p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 transition-all"
+                  title="Chat Options"
+                >
+                  <MoreVertical size={16} />
+                </button>
+
+                {/* Dropdown Menu */}
+                {showMenu && (
+                  <div className="absolute right-0 top-12 w-56 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-1.5 z-30 space-y-1">
+                    <button
+                      onClick={() => {
+                        setShowMediaModal(true);
+                        setShowMenu(false);
+                      }}
+                      className="w-full px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-800 rounded-xl flex items-center gap-2.5 text-left"
+                    >
+                      <ImageIcon size={15} className="text-sky-400" />
+                      <span>Media, Links and Docs</span>
+                    </button>
+
+                    <div className="px-3 py-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                      <Palette size={13} />
+                      <span>Chat Theme</span>
+                    </div>
+                    <div className="flex gap-1 px-3 pb-2">
+                      <button
+                        onClick={() => {
+                          setChatTheme("neon");
+                          setShowMenu(false);
+                        }}
+                        className="w-6 h-6 rounded-full bg-rose-500 border border-white/40"
+                        title="Neon Rose"
+                      />
+                      <button
+                        onClick={() => {
+                          setChatTheme("blue");
+                          setShowMenu(false);
+                        }}
+                        className="w-6 h-6 rounded-full bg-sky-500 border border-white/40"
+                        title="Cyber Blue"
+                      />
+                      <button
+                        onClick={() => {
+                          setChatTheme("emerald");
+                          setShowMenu(false);
+                        }}
+                        className="w-6 h-6 rounded-full bg-emerald-500 border border-white/40"
+                        title="Emerald"
+                      />
+                    </div>
+
+                    <div className="border-t border-slate-800 pt-1">
+                      <button
+                        onClick={handleDeleteChatHistory}
+                        className="w-full px-3 py-2 text-xs font-semibold text-red-400 hover:bg-red-950/40 rounded-xl flex items-center gap-2.5 text-left"
+                      >
+                        <Trash2 size={15} />
+                        <span>Clear Chat History</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </header>
 
@@ -1805,12 +1875,16 @@ export default function ChatPage() {
                       <div
                         className={`p-2.5 sm:p-3 rounded-2xl max-w-[85%] sm:max-w-[60%] shadow-lg ${
                           isMe
-                            ? "bg-gradient-to-r from-rose-600 to-rose-500 text-white rounded-tr-none shadow-rose-600/30"
+                            ? chatTheme === "blue"
+                              ? "bg-gradient-to-r from-sky-600 to-sky-500 text-white rounded-tr-none"
+                              : chatTheme === "emerald"
+                              ? "bg-gradient-to-r from-emerald-600 to-emerald-500 text-white rounded-tr-none"
+                              : "bg-gradient-to-r from-rose-600 to-rose-500 text-white rounded-tr-none shadow-rose-600/30"
                             : "bg-slate-900 text-slate-200 border border-slate-800 rounded-tl-none shadow-sky-950/40"
                         }`}
                       >
                         {msg.type === "sticker" && (
-                          <div className="w-32 sm:w-40 aspect-square flex items-center justify-center p-1 mb-1 bg-black/30 rounded-xl">
+                          <div className="w-36 sm:w-44 aspect-square flex items-center justify-center p-1 mb-1 bg-black/40 rounded-xl">
                             <img src={msg.text} alt="Sticker" className="max-h-full max-w-full object-contain" />
                           </div>
                         )}
@@ -1841,7 +1915,7 @@ export default function ChatPage() {
                         )}
 
                         <div className="flex items-center justify-end gap-1 mt-1">
-                          <p className={`text-[9px] font-mono font-semibold ${isMe ? "text-rose-200" : "text-slate-400"}`}>
+                          <p className={`text-[9px] font-mono font-semibold ${isMe ? "text-rose-100 opacity-90" : "text-slate-400"}`}>
                             {timeFormatted}
                           </p>
                           {isMe && (
@@ -1859,7 +1933,7 @@ export default function ChatPage() {
               <div ref={scrollRef} />
             </div>
 
-            {/* Video Upload Indicator */}
+            {/* Video Upload Streaming Indicator */}
             {uploadProgress !== null && (
               <div className="mx-3 mb-2 p-2.5 rounded-2xl bg-slate-900 border border-sky-500/40 flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -1870,12 +1944,12 @@ export default function ChatPage() {
               </div>
             )}
 
-            {/* Audio Recording Status */}
+            {/* Live Audio Recording Inline Waveform */}
             {isRecording && (
               <div className="mx-3 mb-2 p-2.5 rounded-2xl bg-gradient-to-r from-rose-600 to-sky-600 text-white flex items-center justify-between shadow-xl animate-pulse">
                 <div className="flex items-center gap-2">
                   <span className="w-3 h-3 rounded-full bg-white animate-ping" />
-                  <span className="text-xs font-bold font-mono">Recording Audio... {recordSec}s</span>
+                  <span className="text-xs font-bold font-mono">Recording Voice Note... {recordSec}s</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -1894,79 +1968,146 @@ export default function ChatPage() {
               </div>
             )}
 
-            {/* Mobile-Aligned Input Composer */}
-            <div className="p-2 sm:p-3 bg-slate-950 border-t border-slate-900 w-full flex-shrink-0 z-20 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-              <div className="max-w-4xl mx-auto flex items-end gap-1.5 sm:gap-2 bg-slate-900 border border-slate-800 rounded-2xl p-1.5 focus-within:border-sky-500 transition-colors">
-                <button
-                  onClick={() => setShowStickers(true)}
-                  className="p-2 text-slate-400 hover:text-rose-400 rounded-xl transition-colors"
-                  title="Tamil & English Stickers"
-                >
-                  <Smile size={20} />
-                </button>
-
-                <textarea
-                  rows={1}
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      sendMessage(message);
-                    }
-                  }}
-                  placeholder={`Message ${activePartner.name}...`}
-                  className="flex-1 py-1.5 px-2 outline-none text-sm bg-transparent resize-none max-h-28 text-slate-100 placeholder-slate-500 font-medium"
-                />
-
-                <div className="flex items-center gap-0.5">
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    className="hidden"
-                    accept="image/*,video/*"
-                    onChange={handleFileUpload}
-                  />
-                  <input
-                    type="file"
-                    ref={audioInputRef}
-                    className="hidden"
-                    accept="audio/*"
-                    onChange={handleFileUpload}
-                  />
-
+            {/* EXACT WHATSAPP STYLE COMPOSER BAR (FROM YOUR PHOTO) */}
+            <div className="p-2 sm:p-3 bg-black border-t border-slate-900 w-full flex-shrink-0 z-20 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+              <div className="max-w-4xl mx-auto flex items-center gap-2">
+                {/* Rounded Pill Container with Sticker, Input, Paperclip and Camera */}
+                <div className="flex-1 flex items-center bg-[#1f2c34] rounded-full px-3 py-1.5 border border-slate-800">
                   <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="p-2 text-slate-400 hover:text-sky-400 rounded-xl transition-colors"
-                    title="Attach Media"
+                    onClick={() => setShowStickers(true)}
+                    className="p-1.5 text-slate-400 hover:text-slate-200 transition-colors"
+                    title="Tamil Memes & Stickers"
                   >
-                    <Paperclip size={18} />
+                    <Smile size={22} />
                   </button>
 
+                  <textarea
+                    rows={1}
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        sendMessage(message);
+                      }
+                    }}
+                    placeholder="Message"
+                    className="flex-1 py-1 px-2.5 outline-none text-sm bg-transparent resize-none max-h-24 text-slate-100 placeholder-slate-400 font-medium"
+                  />
+
+                  {/* Attachment Button */}
                   <button
-                    onClick={isRecording ? () => stopRecording(false) : startRecording}
-                    className={`p-2 rounded-xl transition-all ${
-                      isRecording ? "bg-rose-600 text-white animate-bounce shadow-lg" : "text-slate-400 hover:text-sky-400"
-                    }`}
-                    title="Voice Note"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-1.5 text-slate-400 hover:text-slate-200 transition-colors"
+                    title="Attach File"
                   >
-                    <Mic size={18} />
+                    <Paperclip size={20} />
+                  </button>
+
+                  {/* Direct Mobile Camera Button */}
+                  <button
+                    onClick={() => cameraInputRef.current?.click()}
+                    className="p-1.5 text-slate-400 hover:text-slate-200 transition-colors"
+                    title="Take Photo with Camera"
+                  >
+                    <Camera size={20} />
                   </button>
                 </div>
 
-                <button
-                  onClick={() => sendMessage(message)}
-                  className="p-2.5 bg-gradient-to-tr from-rose-500 via-sky-500 to-indigo-600 text-white rounded-xl shadow-md transition-transform active:scale-95 flex-shrink-0"
-                >
-                  <Send size={16} />
-                </button>
+                {/* Hidden File Inputs */}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept="image/*,video/*"
+                  onChange={handleFileUpload}
+                />
+                {/* Direct Native Camera Capture */}
+                <input
+                  type="file"
+                  ref={cameraInputRef}
+                  className="hidden"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleFileUpload}
+                />
+                <input
+                  type="file"
+                  ref={audioInputRef}
+                  className="hidden"
+                  accept="audio/*"
+                  onChange={handleFileUpload}
+                />
+
+                {/* Right Green Circle Button (Voice Record or Send) */}
+                {message.trim() ? (
+                  <button
+                    onClick={() => sendMessage(message)}
+                    className="w-11 h-11 rounded-full bg-[#00a884] hover:bg-[#06cf9c] flex items-center justify-center text-black font-bold shadow-lg transition-transform active:scale-95 flex-shrink-0"
+                    title="Send Message"
+                  >
+                    <Send size={18} className="ml-0.5" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={isRecording ? () => stopRecording(false) : startRecording}
+                    className={`w-11 h-11 rounded-full ${
+                      isRecording ? "bg-rose-600 animate-pulse" : "bg-[#00a884] hover:bg-[#06cf9c]"
+                    } flex items-center justify-center text-black font-bold shadow-lg transition-transform active:scale-95 flex-shrink-0`}
+                    title="Hold or Tap to Record Audio"
+                  >
+                    <Mic size={20} className={isRecording ? "text-white" : "text-black"} />
+                  </button>
+                )}
               </div>
             </div>
           </>
         )}
       </main>
 
-      {/* COMPACT GIPHY TAMIL STICKER DRAWER */}
+      {/* MEDIA, LINKS AND DOCS MODAL */}
+      <AnimatePresence>
+        {showMediaModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-md bg-slate-900 border border-sky-500/40 rounded-3xl p-5 shadow-2xl relative max-h-[80vh] flex flex-col"
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <ImageIcon size={18} className="text-sky-400" />
+                  <span>Media, Links and Docs</span>
+                </h3>
+                <button onClick={() => setShowMediaModal(false)} className="text-slate-400 hover:text-white">
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-2 grid grid-cols-3 gap-2 mt-2">
+                {mediaMessages.length === 0 ? (
+                  <p className="col-span-3 text-center text-xs text-slate-500 py-8">No photos or videos shared yet.</p>
+                ) : (
+                  mediaMessages.map((m) => (
+                    <div key={m.id} className="aspect-square rounded-xl overflow-hidden bg-black border border-slate-800">
+                      {m.type === "image" ? (
+                        <img src={m.text} alt="Media" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-sky-400">
+                          <Video size={24} />
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* COMPACT GIPHY & SEARCHMEMES STICKER DRAWER */}
       <CompactGiphyStickerDrawer
         isOpen={showStickers}
         onClose={() => setShowStickers(false)}
