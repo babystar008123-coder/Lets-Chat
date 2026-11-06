@@ -14,8 +14,8 @@ import {
   serverTimestamp,
   orderBy,
   getDocs,
-  setDoc,
-  getDoc
+  getDoc,
+  setDoc
 } from "firebase/firestore";
 
 // Firebase Config
@@ -31,7 +31,19 @@ const firebaseConfig = {
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Soft futuristic notification chime
+// Helper: Convert VAPID Public Key for Web Push
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/\-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+// In-app soft notification sound
 function playNotificationChime() {
   try {
     const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
@@ -49,33 +61,7 @@ function playNotificationChime() {
     osc.start();
     osc.stop(ctx.currentTime + 0.3);
   } catch (e) {
-    console.log("Audio play prevented:", e);
-  }
-}
-
-// Trigger screen bar notification
-async function showScreenBarNotification(senderName: string, senderId: string, text: string) {
-  if (!("Notification" in window) || Notification.permission !== "granted") return;
-  const title = `Lets Chat: ${senderName || "ID " + senderId}`;
-  const options = {
-    body: text || "????? ?????? ?????????? (New message)",
-    icon: "/icon-192.png",
-    badge: "/icon-192.png",
-    tag: `msg-${senderId}`,
-    vibrate: [200, 100, 200]
-  };
-
-  try {
-    if ("serviceWorker" in navigator) {
-      const reg = await navigator.serviceWorker.ready;
-      if (reg && reg.showNotification) {
-        await reg.showNotification(title, options);
-        return;
-      }
-    }
-    new Notification(title, options);
-  } catch (e) {
-    console.error("Screen bar notification failed:", e);
+    console.log("Audio playback error:", e);
   }
 }
 
@@ -91,27 +77,62 @@ export default function ChatDashboard() {
   const [messages, setMessages] = useState<any[]>([]);
   const [inputText, setInputText] = useState("");
   const [unreadMap, setUnreadMap] = useState<Record<string, { count: number; lastText: string }>>({});
-  const [notificationGranted, setNotificationGranted] = useState(false);
+  const [pushSubscribed, setPushSubscribed] = useState(false);
   const activeChatRef = useRef(activeChat);
 
   useEffect(() => {
     activeChatRef.current = activeChat;
   }, [activeChat]);
 
-  // Request Notification permission
-  useEffect(() => {
-    if (typeof window !== "undefined" && "Notification" in window) {
-      if (Notification.permission === "granted") {
-        setNotificationGranted(true);
-      } else if (Notification.permission === "default") {
-        Notification.requestPermission().then((perm) => {
-          setNotificationGranted(perm === "granted");
+  // STEP 4: Register background push subscription with browser & Firestore
+  const enableBackgroundPush = async () => {
+    if (typeof window === "undefined" || !("serviceWorker" in navigator) || !("PushManager" in window)) {
+      alert("Push notifications are not supported on this browser.");
+      return;
+    }
+
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        alert("Please enable notification permissions in your browser settings.");
+        return;
+      }
+
+      const reg = await navigator.serviceWorker.ready;
+      let sub = await reg.pushManager.getSubscription();
+
+      const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "";
+      if (!sub && vapidPublicKey) {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
         });
       }
-    }
-  }, []);
 
-  // Listen for Unread Messages & Trigger Notifications
+      if (sub) {
+        await setDoc(doc(db, "push_subscriptions", myId), {
+          subscription: sub.toJSON(),
+          userId: myId,
+          userName: myName,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+
+        setPushSubscribed(true);
+        console.log("Device subscribed to background push for ID:", myId);
+      }
+    } catch (err) {
+      console.error("Failed to enable background push:", err);
+    }
+  };
+
+  // Automatically attempt subscription if permission already granted
+  useEffect(() => {
+    if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+      enableBackgroundPush();
+    }
+  }, [myId]);
+
+  // Real-time unread messages listener for green light indicator
   useEffect(() => {
     if (!myId) return;
 
@@ -129,23 +150,19 @@ export default function ChatDashboard() {
         const data = docSnap.data();
         const sId = data.senderId;
         if (!map[sId]) {
-          map[sId] = { count: 0, lastText: data.text || "Media / Sticker" };
+          map[sId] = { count: 0, lastText: data.text || "Media" };
         }
         map[sId].count += 1;
-        map[sId].lastText = data.text || "Media / Sticker";
       });
 
       setUnreadMap(map);
 
-      // Trigger Screen Bar Notification on incoming changes
       if (!isInitialLoad) {
         snapshot.docChanges().forEach((change) => {
           if (change.type === "added") {
             const data = change.doc.data();
-            // Only notify if not actively chatting with this user right now
             if (!activeChatRef.current || activeChatRef.current.id !== data.senderId) {
               playNotificationChime();
-              showScreenBarNotification(data.senderName || "Friend", data.senderId, data.text);
             }
           }
         });
@@ -156,7 +173,7 @@ export default function ChatDashboard() {
     return () => unsubscribe();
   }, [myId]);
 
-  // Real-time messages for active chat room
+  // Listen to messages for active chat
   useEffect(() => {
     if (!activeChat) return;
 
@@ -173,7 +190,6 @@ export default function ChatDashboard() {
         const data = docSnap.data();
         msgs.push({ id: docSnap.id, ...data });
 
-        // Mark incoming messages as read when looking at the screen
         if (data.receiverId === myId && data.read === false) {
           updateDoc(doc(db, "messages", docSnap.id), { read: true });
         }
@@ -184,17 +200,14 @@ export default function ChatDashboard() {
     return () => unsubscribe();
   }, [activeChat, myId]);
 
-  // Open Chat and mark all unreads as viewed
   const handleOpenChat = async (contact: { id: string; name: string }) => {
     setActiveChat(contact);
-    // Instant local cleanup
     setUnreadMap((prev) => {
       const next = { ...prev };
       delete next[contact.id];
       return next;
     });
 
-    // Mark Firestore messages as read
     try {
       const q = query(
         collection(db, "messages"),
@@ -211,7 +224,7 @@ export default function ChatDashboard() {
     }
   };
 
-  // Send message
+  // STEP 5: Send message & Trigger background push
   const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!inputText.trim() || !activeChat) return;
@@ -220,6 +233,8 @@ export default function ChatDashboard() {
     setInputText("");
 
     const chatId = [myId, activeChat.id].sort().join("_");
+
+    // 1. Save message to Firestore
     await addDoc(collection(db, "messages"), {
       chatId,
       senderId: myId,
@@ -229,6 +244,25 @@ export default function ChatDashboard() {
       read: false,
       createdAt: serverTimestamp()
     });
+
+    // 2. Trigger serverless background push notification to receiver
+    try {
+      const subDoc = await getDoc(doc(db, "push_subscriptions", activeChat.id));
+      if (subDoc.exists() && subDoc.data()?.subscription) {
+        await fetch("/api/send-notification", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            subscription: subDoc.data().subscription,
+            title: `Lets Chat: ${myName}`,
+            body: textToSend,
+            senderId: myId
+          })
+        });
+      }
+    } catch (err) {
+      console.log("Background push trigger error:", err);
+    }
   };
 
   return (
@@ -247,12 +281,14 @@ export default function ChatDashboard() {
                 <p className="text-[11px] text-cyan-400 font-semibold tracking-wider">MY PROFILE</p>
               </div>
             </div>
-            {!notificationGranted && (
+
+            {/* Notification Activation Button */}
+            {!pushSubscribed && (
               <button
-                onClick={() => Notification.requestPermission().then((p) => setNotificationGranted(p === "granted"))}
-                className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-cyan-950/80 border border-cyan-500/50 text-cyan-300 flex items-center gap-1"
+                onClick={enableBackgroundPush}
+                className="px-3 py-1.5 text-xs font-bold rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-black flex items-center gap-1.5 shadow-[0_0_12px_rgba(16,185,129,0.3)] animate-pulse"
               >
-                ?? Alert On
+                ?? Turn On Alerts
               </button>
             )}
           </div>
@@ -271,7 +307,7 @@ export default function ChatDashboard() {
             </button>
           </div>
 
-          {/* Contacts Section */}
+          {/* Confidential Contacts */}
           <div className="mt-6 flex-1 flex flex-col">
             <div className="flex items-center gap-2 mb-3">
               <span className="text-cyan-400 text-sm">???</span>
@@ -306,7 +342,7 @@ export default function ChatDashboard() {
                       )}
                     </div>
 
-                    {/* Contact Info & Not Viewed Yet Indicator */}
+                    {/* Contact Details & Status */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <span className="font-semibold text-white text-base truncate">{contact.name}</span>
@@ -329,7 +365,7 @@ export default function ChatDashboard() {
                       )}
                     </div>
 
-                    {/* Chat Action Button */}
+                    {/* Chat Button */}
                     <button
                       className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
                         hasUnread
@@ -390,7 +426,7 @@ export default function ChatDashboard() {
             })}
           </div>
 
-          {/* WhatsApp Style Bottom Input Bar */}
+          {/* Bottom Bar */}
           <form onSubmit={handleSendMessage} className="p-2.5 bg-black border-t border-slate-900 flex items-center gap-2">
             <input
               type="text"

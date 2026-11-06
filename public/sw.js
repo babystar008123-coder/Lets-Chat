@@ -14,23 +14,34 @@ self.addEventListener("fetch", function (event) {
   );
 });
 
-// Screen bar notification listener
+// Woken up by Android OS even when Chrome is completely closed
 self.addEventListener("push", function (event) {
-  const data = event.data ? event.data.json() : {};
+  let data = {};
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (e) {
+      data = { body: event.data.text() };
+    }
+  }
+
   const title = data.title || "Lets Chat New Message! ??";
   const options = {
-    body: data.body || "????? ?????? ??????????.",
+    body: data.body || "You received a new message.",
     icon: "/icon-192.png",
     badge: "/icon-192.png",
     vibrate: [200, 100, 200],
     tag: data.senderId || "chat-msg",
     renotify: true,
-    data: { url: "/chat" }
+    data: {
+      url: data.url || "/chat"
+    }
   };
+
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
-// Click notification to open app
+// Click notification to open or focus the app
 self.addEventListener("notificationclick", function (event) {
   event.notification.close();
   event.waitUntil(
