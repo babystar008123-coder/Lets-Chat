@@ -38,8 +38,15 @@ import {
   KeyRound,
   LogOut,
   AlertCircle,
-  BellRing,
   CheckCheck,
+  ArrowLeft,
+  Users,
+  Trash2,
+  Shield,
+  MoreVertical,
+  Palette,
+  FileText,
+  Image as ImageIcon,
 } from "lucide-react";
 import { db } from "@/lib/firebase";
 import {
@@ -56,10 +63,11 @@ import {
   where,
   runTransaction,
   getDocs,
+  deleteDoc,
 } from "firebase/firestore";
 
 // ==========================================
-// 1. INLINE AUDIO CHIME & NOTIFICATIONS
+// 1. MOBILE NATIVE BACKGROUND NOTIFICATIONS
 // ==========================================
 function playNotificationChime() {
   try {
@@ -87,33 +95,25 @@ function playNotificationChime() {
   }
 }
 
-function triggerMobileSystemNotification(title: string, body: string, icon?: string) {
+function triggerMobileStatusBarNotification(title: string, body: string, icon?: string) {
   playNotificationChime();
   if (typeof window === "undefined" || !("Notification" in window)) return;
 
   if (Notification.permission === "granted") {
-    try {
-      const options: any = {
-        body,
-        icon: icon || "/favicon.ico",
-        badge: "/favicon.ico",
-        tag: "lets-chat-message",
-      };
-      const notif = new Notification(title, options);
-      notif.onclick = () => {
-        window.focus();
-        notif.close();
-      };
-    } catch (e) {
-      if (navigator.serviceWorker && navigator.serviceWorker.ready) {
-        navigator.serviceWorker.ready.then((reg) => {
-          reg.showNotification(title, {
-            body,
-            icon: icon || "/favicon.ico",
-            badge: "/favicon.ico",
-          });
-        });
-      }
+    if (navigator.serviceWorker) {
+      navigator.serviceWorker.ready.then((reg) => {
+        reg.showNotification(title, {
+          body,
+          icon: icon || "/favicon.ico",
+          badge: "/favicon.ico",
+          tag: "lets-chat-msg",
+          renotify: true,
+        } as any);
+      }).catch(() => {
+        new Notification(title, { body, icon: icon || "/favicon.ico" });
+      });
+    } else {
+      new Notification(title, { body, icon: icon || "/favicon.ico" });
     }
   }
 }
@@ -173,7 +173,7 @@ function useInlineAgora() {
 
   const startCall = async (channelName: string, isVideo: boolean = true) => {
     if (!client || !AGORA_APP_ID) {
-      alert("Add NEXT_PUBLIC_AGORA_APP_ID in .env.local to enable live voice & video calls!");
+      alert("Add NEXT_PUBLIC_AGORA_APP_ID in .env.local to enable calling!");
       return;
     }
     try {
@@ -238,63 +238,7 @@ function useInlineAgora() {
 }
 
 // ==========================================
-// 3. HEART SHOWER ENGINE
-// ==========================================
-interface HeartParticle {
-  id: number;
-  x: number;
-  size: number;
-  duration: number;
-  emoji: string;
-}
-
-function InlineHeartShower({ trigger }: { trigger: number }) {
-  const [hearts, setHearts] = useState<HeartParticle[]>([]);
-
-  useEffect(() => {
-    if (trigger === 0) return;
-    const emojis = ["❤️", "💖", "💕", "💘", "🌹", "✨", "😍", "💋", "🔥", "💙"];
-    const newItems: HeartParticle[] = Array.from({ length: 18 }).map((_, i) => ({
-      id: Date.now() + i,
-      x: Math.random() * 85 + 5,
-      size: Math.random() * 16 + 22,
-      duration: Math.random() * 1.5 + 1.8,
-      emoji: emojis[Math.floor(Math.random() * emojis.length)],
-    }));
-
-    setHearts((prev) => [...prev, ...newItems]);
-    const timer = setTimeout(() => setHearts([]), 3500);
-    return () => clearTimeout(timer);
-  }, [trigger]);
-
-  return (
-    <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
-      <AnimatePresence>
-        {hearts.map((h) => (
-          <motion.div
-            key={h.id}
-            initial={{ opacity: 1, y: "105vh", x: `${h.x}vw`, scale: 0.4 }}
-            animate={{
-              opacity: [1, 1, 0],
-              y: "-15vh",
-              x: `${h.x + (Math.random() * 12 - 6)}vw`,
-              scale: [0.4, 1.3, 1],
-              rotate: [0, Math.random() * 40 - 20],
-            }}
-            transition={{ duration: h.duration, ease: "easeOut" }}
-            style={{ fontSize: `${h.size}px` }}
-            className="absolute bottom-0 select-none filter drop-shadow-[0_0_12px_rgba(244,63,94,0.8)]"
-          >
-            {h.emoji}
-          </motion.div>
-        ))}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-// ==========================================
-// 4. CALL HUD MODAL
+// 3. CALL HUD MODAL
 // ==========================================
 function InlineCallModal({
   channelName,
@@ -321,16 +265,16 @@ function InlineCallModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-2xl p-3 sm:p-6">
-      <div className="relative w-full max-w-4xl h-[85vh] sm:h-[80vh] bg-slate-950 rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(56,189,248,0.2)] flex flex-col justify-between border border-sky-500/30">
+      <div className="relative w-full max-w-4xl h-[85vh] sm:h-[80vh] bg-slate-950 rounded-3xl overflow-hidden shadow-2xl flex flex-col justify-between border border-sky-500/30">
         <div className="relative flex-1 w-full bg-black flex items-center justify-center overflow-hidden">
           {remoteUsers.length > 0 && isVideo ? (
             <div ref={remoteRef} className="w-full h-full object-cover" />
           ) : (
             <div className="text-center text-slate-100 space-y-3 p-4">
-              <div className="w-24 h-24 rounded-3xl bg-gradient-to-tr from-rose-500 via-sky-500 to-indigo-600 flex items-center justify-center mx-auto text-3xl font-black text-white shadow-[0_0_30px_rgba(244,63,94,0.6)] animate-pulse">
+              <div className="w-24 h-24 rounded-3xl bg-gradient-to-tr from-rose-500 via-sky-500 to-indigo-600 flex items-center justify-center mx-auto text-3xl font-black text-white shadow-lg animate-pulse">
                 LC
               </div>
-              <p className="text-base font-bold text-slate-200">Room: {channelName}</p>
+              <p className="text-base font-bold text-slate-200">Call: {channelName}</p>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-400 text-xs font-semibold">
                 <span className="w-2 h-2 rounded-full bg-sky-400 animate-ping" />
                 {remoteUsers.length > 0 ? "Call Connected" : "Connecting..."}
@@ -369,7 +313,7 @@ function InlineCallModal({
 
           <button
             onClick={onEndCall}
-            className="p-4 rounded-2xl bg-red-600 hover:bg-red-500 text-white shadow-[0_0_20px_rgba(239,68,68,0.5)] transition-transform active:scale-95"
+            className="p-4 rounded-2xl bg-red-600 hover:bg-red-500 text-white shadow-lg transition-transform active:scale-95"
           >
             <PhoneOff size={20} />
           </button>
@@ -380,143 +324,202 @@ function InlineCallModal({
 }
 
 // ==========================================
-// 5. REAL TAMIL CINEMA MEMES
+// 4. RICH TAMIL MEME TEMPLATES & GIPHY VAULT (SEARCHMEMES.IN + PINTEREST)
 // ==========================================
-interface TamilMeme {
+interface StickerItem {
   id: string;
   url: string;
-  actor: string;
-  movie: string;
-  quote: string;
-  tag: "comedy" | "romance" | "punch" | "dialogues";
-  badgeColor: string;
+  name: string;
+  dialogue?: string;
+  category: "vadivelu" | "mass" | "dialogues" | "english" | "love";
 }
 
-const TAMIL_VAULT: TamilMeme[] = [
+const RICH_TAMIL_MEME_VAULT: StickerItem[] = [
+  // Vadivelu Comedy Classics
   {
-    id: "vadivelu_winner",
-    actor: "Vadivelu",
-    movie: "Winner (Kaipulla)",
-    quote: "Venaam... Valikidhu... Azhudhuduven! Enna vittudunga da!",
-    tag: "comedy",
-    badgeColor: "bg-sky-500/20 text-sky-300 border-sky-500/30",
-    url: "https://images.unsplash.com/photo-1544717305-2782549b5136?w=400&auto=format&fit=crop&q=80",
+    id: "sm_vadi_kaipulla",
+    url: "https://media3.giphy.com/media/v1.Y2lkPTZjMDliOTUyZGNkcGpic3ZuczRkaWxneWF1MmVheWFuZGJiN2RkeTZ4ZnFudm11YyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/YSdvQxlheVHxQw5hEa/200.gif",
+    name: "Kaipulla",
+    dialogue: "Venaam... Valikidhu... Azhudhuduven!",
+    category: "vadivelu",
   },
   {
-    id: "vadivelu_chandramukhi",
-    actor: "Vadivelu",
-    movie: "Chandramukhi",
-    quote: "Maapla! Vechittanya aappu! Naan apdiye shock aayitten!",
-    tag: "comedy",
-    badgeColor: "bg-sky-500/20 text-sky-300 border-sky-500/30",
-    url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80",
+    id: "sm_vadi_shock",
+    url: "https://media3.giphy.com/media/v1.Y2lkPTZjMDliOTUyNnEzanNlZHJibTYwYjZzazd3NG55OW5zY3g3cmhkeHM4NnVybXU4MyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/ESYT0mj1mUyrjr5kDW/200_d.gif",
+    name: "Naan Shock Aayitten",
+    dialogue: "Naan apdiye shock aayitten!",
+    category: "vadivelu",
   },
   {
-    id: "vadivelu_friends",
-    actor: "Vadivelu",
-    movie: "Friends (Nesamani)",
-    quote: "Aani pudunga venaam! Vechittu kelambu!",
-    tag: "comedy",
-    badgeColor: "bg-sky-500/20 text-sky-300 border-sky-500/30",
-    url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80",
+    id: "sm_vadi_nesamani",
+    url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=250&auto=format&fit=crop&q=80",
+    name: "Nesamani Aani",
+    dialogue: "Aani pudunga venaam!",
+    category: "vadivelu",
   },
   {
-    id: "goundamani_suriyan",
-    actor: "Goundamani & Senthil",
-    movie: "Suriyan",
-    quote: "Arasiyalla idhellam saadharanamappa! Phone pottu kettu solren!",
-    tag: "comedy",
-    badgeColor: "bg-sky-500/20 text-sky-300 border-sky-500/30",
-    url: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&auto=format&fit=crop&q=80",
+    id: "sm_vadi_aappu",
+    url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=250&auto=format&fit=crop&q=80",
+    name: "Vechittanya Aappu",
+    dialogue: "Maapla! Vechittanya aappu!",
+    category: "vadivelu",
   },
   {
-    id: "santhanam_boss",
-    actor: "Santhanam",
-    movie: "Boss Engira Bhaskaran",
-    quote: "Nanbenda! Endha naalaiku naan unna kaappaathama irundhuruken?",
-    tag: "comedy",
-    badgeColor: "bg-sky-500/20 text-sky-300 border-sky-500/30",
-    url: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&auto=format&fit=crop&q=80",
+    id: "sm_vadi_building",
+    url: "https://images.unsplash.com/photo-1544717305-2782549b5136?w=250&auto=format&fit=crop&q=80",
+    name: "Building Strong",
+    dialogue: "Building strong-u, basement weak-u!",
+    category: "vadivelu",
   },
   {
-    id: "vijay_kushi",
-    actor: "Thalapathy Vijay",
-    movie: "Kushi",
-    quote: "Chellame... Un kooda pesumbodhu mattum dhaan ulagame marakkudhu ❤️",
-    tag: "romance",
-    badgeColor: "bg-rose-500/20 text-rose-300 border-rose-500/30",
-    url: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&auto=format&fit=crop&q=80",
+    id: "sm_vadi_sameblood",
+    url: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=250&auto=format&fit=crop&q=80",
+    name: "Why Blood",
+    dialogue: "Why blood? Same blood!",
+    category: "vadivelu",
   },
   {
-    id: "surya_vtv",
-    actor: "Suriya",
-    movie: "Vaaranam Aayiram",
-    quote: "En melodiku nee dhaan lyrical partner... Nee illama ennala mudiyadhu!",
-    tag: "romance",
-    badgeColor: "bg-rose-500/20 text-rose-300 border-rose-500/30",
-    url: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=400&auto=format&fit=crop&q=80",
+    id: "sm_vadi_sing",
+    url: "https://media4.giphy.com/media/v1.Y2lkPTZjMDliOTUyd2I5Mjk3OTl4eHA1Z3hpbjBsejRyMHdoYXkzYXNucTk5aTNpODk3MCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/YuWeSpstyR92U5cP0y/200w.gif",
+    name: "Sing In Rain",
+    dialogue: "Sing in the rain...",
+    category: "vadivelu",
+  },
+
+  // Tamil Mass & Punch (Rajini, Vijay, Ajith, Kamal)
+  {
+    id: "sm_rajini_baasha",
+    url: "https://media3.giphy.com/media/v1.Y2lkPTZjMDliOTUycWc4eW8wMGt5ZWN3dnZ1MWFvZHBsNW92cnNkN3cybnN6aXh3emxucyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/3S7dHcfGYlxvqjtHqn/200w.gif",
+    name: "Rajini Baasha",
+    dialogue: "Naan oru thadava sonna, nooru thadava sonna maadhiri!",
+    category: "mass",
   },
   {
-    id: "dhanush_3",
-    actor: "Dhanush",
-    movie: "3 (Moonu)",
-    quote: "Kannazhaga... Kaalazhaga... En uyir nee dhaan di!",
-    tag: "romance",
-    badgeColor: "bg-rose-500/20 text-rose-300 border-rose-500/30",
-    url: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400&auto=format&fit=crop&q=80",
+    id: "sm_vijay_ghilli",
+    url: "https://media2.giphy.com/avatars/whistleadi/pnrBneA9iDRq.png",
+    name: "All Are Welcome",
+    dialogue: "All are welcome! I am waiting!",
+    category: "mass",
   },
   {
-    id: "rajini_baasha",
-    actor: "Superstar Rajinikanth",
-    movie: "Baasha",
-    quote: "Naan oru thadava sonna, nooru thadava sonna maadhiri! 🔥",
-    tag: "punch",
-    badgeColor: "bg-rose-500/20 text-rose-300 border-rose-500/30",
-    url: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=400&auto=format&fit=crop&q=80",
+    id: "sm_ajith_mankatha",
+    url: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=250&auto=format&fit=crop&q=80",
+    name: "Mankatha DA",
+    dialogue: "This is my game, money money!",
+    category: "mass",
   },
   {
-    id: "ajith_mankatha",
-    actor: "Thala Ajith",
-    movie: "Mankatha",
-    quote: "This is my game... And I play it my way! No rules!",
-    tag: "punch",
-    badgeColor: "bg-sky-500/20 text-sky-300 border-sky-500/30",
-    url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80",
+    id: "sm_kamal_vikram",
+    url: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=250&auto=format&fit=crop&q=80",
+    name: "Aarambikkalaangala",
+    dialogue: "Aarambikkalaangala? Paathukalam!",
+    category: "mass",
   },
   {
-    id: "kamal_vikram",
-    actor: "Kamal Haasan",
-    movie: "Vikram",
-    quote: "Aarambikkalaangala? Paathukalam!",
-    tag: "punch",
-    badgeColor: "bg-rose-500/20 text-rose-300 border-rose-500/30",
-    url: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&auto=format&fit=crop&q=80",
+    id: "sm_rajini_padayappa",
+    url: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=250&auto=format&fit=crop&q=80",
+    name: "Thani Vazhi",
+    dialogue: "En vazhi thani vazhi!",
+    category: "mass",
+  },
+
+  // Dialogues & Counter
+  {
+    id: "sm_gounda_arasiyal",
+    url: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=250&auto=format&fit=crop&q=80",
+    name: "Arasiyalla Idhellam",
+    dialogue: "Arasiyalla idhellam saadharanamappa!",
+    category: "dialogues",
   },
   {
-    id: "dial_love",
-    actor: "Romantic Vibes",
-    movie: "Love Pulse",
-    quote: "Un kooda pesina dhaan en day complete aagum di pattu ❤️",
-    tag: "dialogues",
-    badgeColor: "bg-sky-500/20 text-sky-300 border-sky-500/30",
-    url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80",
+    id: "sm_santha_nanba",
+    url: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=250&auto=format&fit=crop&q=80",
+    name: "Nanbenda",
+    dialogue: "Nanbenda! Eppavume un kooda!",
+    category: "dialogues",
+  },
+  {
+    id: "sm_ramar_ennama",
+    url: "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=250&auto=format&fit=crop&q=80",
+    name: "Ennama Ippadi",
+    dialogue: "Ennama ippadi panreengale ma!",
+    category: "dialogues",
+  },
+  {
+    id: "sm_prakash_nakkal",
+    url: "https://images.unsplash.com/photo-1463453091185-61582044d556?w=250&auto=format&fit=crop&q=80",
+    name: "Nakkal Smile",
+    dialogue: "Chellatha... Nakkal la!",
+    category: "dialogues",
+  },
+
+  // English & Trending Memes
+  {
+    id: "sm_cat_vibing",
+    url: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbnZhcXpnNDhhM2p5Z2g4NGgxcXN5Y3JtNWd2eG9mN3Z0eXVhOTM1eSZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/MDJ9IbxxvDUQM/giphy.gif",
+    name: "Cat Vibing",
+    category: "english",
+  },
+  {
+    id: "sm_doge_wow",
+    url: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExZ29va3I3eGZjc3B0Mnl5N25vaHhyY3k2MWVxdWwxcjR6YWw2MXB2dyZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/9C1nyePmmDlS552Emu/giphy.gif",
+    name: "Doge Wow",
+    category: "english",
+  },
+  {
+    id: "sm_pepe_frog",
+    url: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHIxb3p1a2gxdnI2Z2JldDN5aXcxZWt0dzNreTVzZHA2NmN2c3l1eiZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/13CoXDiaCcCoyk/giphy.gif",
+    name: "Pepe Mood",
+    category: "english",
+  },
+  {
+    id: "sm_popcat",
+    url: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3Q0bWk2dmk5N2pmeWp1cTZxcHRnd2Q4ZjhpZHVxdmdwbWVtc2ptYiZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/osAcIGJnJ0sjpp3Qg8/giphy.gif",
+    name: "Popcat Mouth",
+    category: "english",
+  },
+
+  // Love & Romance
+  {
+    id: "sm_love_tamizh",
+    url: "https://media3.giphy.com/media/v1.Y2lkPTZjMDliOTUyaXE3MGk2dDAybnpmaHpheGI0a3Ezdzlpb3cwd2diYTVvNTl1OWJrcSZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/ddxgdaMGp1GVZTOHS6/giphy.gif",
+    name: "Tamizh Love",
+    category: "love",
+  },
+  {
+    id: "sm_surya_vtv",
+    url: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=250&auto=format&fit=crop&q=80",
+    name: "Jessie VTV",
+    dialogue: "En melodiku lyrical partner!",
+    category: "love",
+  },
+  {
+    id: "sm_dhanush_3",
+    url: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=250&auto=format&fit=crop&q=80",
+    name: "Kannazhaga 3",
+    dialogue: "Kannazhaga... Kaalazhaga...",
+    category: "love",
   },
 ];
 
-// ==========================================
-// 6. BOTTOM SHEET MEME DRAWER
-// ==========================================
-function MobileMemeBottomSheet({
+function CompactGiphyStickerDrawer({
   isOpen,
   onClose,
   onSelect,
 }: {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (item: TamilMeme) => void;
+  onSelect: (item: StickerItem) => void;
 }) {
-  const [activeTab, setActiveTab] = useState<"comedy" | "romance" | "punch" | "dialogues">("comedy");
-  const filtered = TAMIL_VAULT.filter((m) => m.tag === activeTab);
+  const [folder, setFolder] = useState<"vadivelu" | "mass" | "dialogues" | "english" | "love">("vadivelu");
+  const [search, setSearch] = useState("");
+
+  const filtered = RICH_TAMIL_MEME_VAULT.filter(
+    (s) =>
+      s.category === folder &&
+      (s.name.toLowerCase().includes(search.toLowerCase()) ||
+        (s.dialogue && s.dialogue.toLowerCase().includes(search.toLowerCase())))
+  );
 
   return (
     <AnimatePresence>
@@ -535,45 +538,55 @@ function MobileMemeBottomSheet({
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 280 }}
-            className="fixed bottom-0 inset-x-0 max-h-[82vh] bg-slate-950 border-t border-sky-500/30 rounded-t-[32px] shadow-[0_-10px_50px_rgba(0,0,0,0.95)] z-50 flex flex-col overflow-hidden pb-[calc(1rem+env(safe-area-inset-bottom))]"
+            className="fixed bottom-0 inset-x-0 max-h-[72vh] bg-slate-950 border-t border-sky-500/40 rounded-t-[32px] shadow-[0_-10px_50px_rgba(0,0,0,0.95)] z-50 flex flex-col overflow-hidden pb-[calc(1rem+env(safe-area-inset-bottom))]"
           >
-            <div className="w-12 h-1.5 bg-slate-800 rounded-full mx-auto my-3" />
+            <div className="w-12 h-1.5 bg-slate-800 rounded-full mx-auto my-2.5" />
 
-            <div className="px-4 pb-3 border-b border-slate-900 flex items-center justify-between">
-              <div className="grid grid-cols-4 gap-1 p-1 bg-slate-900/90 rounded-2xl border border-slate-800 flex-1 mr-2">
-                {(
-                  [
-                    { key: "comedy", label: "Comedy", icon: Laugh },
-                    { key: "romance", label: "Love", icon: Heart },
-                    { key: "punch", label: "Punch", icon: Flame },
-                    { key: "dialogues", label: "Dial", icon: MessageSquareQuote },
-                  ] as const
-                ).map((tab) => {
-                  const Icon = tab.icon;
-                  const isActive = activeTab === tab.key;
-                  return (
+            <div className="px-3 pb-2.5 border-b border-slate-900 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex gap-1 overflow-x-auto no-scrollbar py-1 flex-1 mr-2">
+                  {(
+                    [
+                      { key: "vadivelu", label: "😂 வடிவேலு" },
+                      { key: "mass", label: "🔥 மாஸ்" },
+                      { key: "dialogues", label: "💬 டயலாக்" },
+                      { key: "english", label: "🌐 English" },
+                      { key: "love", label: "❤️ காதல்" },
+                    ] as const
+                  ).map((t) => (
                     <button
-                      key={tab.key}
-                      onClick={() => setActiveTab(tab.key)}
-                      className={`flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-bold transition-all ${
-                        isActive
+                      key={t.key}
+                      onClick={() => setFolder(t.key)}
+                      className={`py-1 px-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                        folder === t.key
                           ? "bg-gradient-to-r from-rose-500 to-sky-500 text-white shadow-md"
-                          : "text-slate-400 hover:text-slate-200"
+                          : "text-slate-400 hover:text-slate-200 bg-slate-900 border border-slate-800"
                       }`}
                     >
-                      <Icon size={14} />
-                      <span>{tab.label}</span>
+                      {t.label}
                     </button>
-                  );
-                })}
+                  ))}
+                </div>
+
+                <button onClick={onClose} className="p-1.5 rounded-xl bg-slate-900 text-slate-400 hover:text-white">
+                  <X size={18} />
+                </button>
               </div>
 
-              <button onClick={onClose} className="p-2 rounded-xl bg-slate-900 text-slate-400 hover:text-white">
-                <X size={18} />
-              </button>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="ஸ்டிக்கர் அல்லது டயலாக் தேடுங்கள்..."
+                  className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl bg-slate-900 border border-slate-800 text-white placeholder-slate-500 outline-none focus:border-sky-500"
+                />
+                <Search size={14} className="absolute left-2.5 top-2 text-slate-500" />
+              </div>
             </div>
 
-            <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto max-h-[62vh]">
+            {/* High-Density 4-5 Column Compact Grid */}
+            <div className="p-2.5 grid grid-cols-4 sm:grid-cols-5 gap-2 overflow-y-auto max-h-[50vh]">
               {filtered.map((item) => (
                 <div
                   key={item.id}
@@ -581,23 +594,18 @@ function MobileMemeBottomSheet({
                     onSelect(item);
                     onClose();
                   }}
-                  className="cursor-pointer group flex flex-col p-2.5 rounded-2xl bg-slate-900/70 hover:bg-slate-900 border border-slate-800 hover:border-sky-500/60 transition-all shadow-sm active:scale-95"
+                  className="cursor-pointer group flex flex-col items-center justify-center p-1 rounded-2xl bg-slate-900/60 hover:bg-slate-900 border border-slate-800/80 hover:border-sky-500/70 transition-all shadow-sm active:scale-90"
                 >
-                  <div className="relative aspect-video sm:aspect-square rounded-xl overflow-hidden mb-2 bg-black">
+                  <div className="w-13 h-13 sm:w-16 sm:h-16 flex items-center justify-center overflow-hidden rounded-xl bg-black/50 p-0.5">
                     <img
                       src={item.url}
-                      alt={item.actor}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      alt={item.name}
+                      className="max-h-full max-w-full object-contain group-hover:scale-110 transition-transform"
                     />
-                    <span className={`absolute top-1.5 left-1.5 text-[9px] font-black px-1.5 py-0.5 rounded-md border backdrop-blur-md ${item.badgeColor}`}>
-                      {item.actor}
-                    </span>
                   </div>
-
-                  <p className="text-[11px] text-slate-200 font-semibold italic line-clamp-2 leading-snug">
-                    "{item.quote}"
+                  <p className="text-[9px] font-bold text-slate-300 truncate w-full text-center mt-1">
+                    {item.name}
                   </p>
-                  <p className="text-[10px] text-sky-400 font-bold mt-1">{item.movie}</p>
                 </div>
               ))}
             </div>
@@ -609,90 +617,7 @@ function MobileMemeBottomSheet({
 }
 
 // ==========================================
-// 7. USER PROFILE CARD MODAL
-// ==========================================
-function UserProfileCardModal({
-  user,
-  myId,
-  isOpen,
-  onClose,
-  onRequestFriend,
-  onOpenDirectChat,
-}: {
-  user: { id: string; name: string; avatar: string } | null;
-  myId: string;
-  isOpen: boolean;
-  onClose: () => void;
-  onRequestFriend: (targetId: string) => void;
-  onOpenDirectChat: (targetId: string) => void;
-}) {
-  if (!isOpen || !user) return null;
-  const isMe = user.id === myId;
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
-      <motion.div
-        initial={{ scale: 0.92, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.92, opacity: 0 }}
-        className="w-full max-w-sm bg-slate-950 border border-sky-500/50 rounded-3xl p-6 shadow-[0_0_50px_rgba(56,189,248,0.25)] relative text-center"
-      >
-        <button onClick={onClose} className="absolute right-4 top-4 text-slate-400 hover:text-white">
-          <X size={18} />
-        </button>
-
-        <div className="w-24 h-24 rounded-full mx-auto overflow-hidden border-2 border-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.5)] mb-3 bg-slate-900">
-          {user.avatar ? (
-            <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-slate-500 text-3xl font-bold">
-              {user.name.charAt(0)}
-            </div>
-          )}
-        </div>
-
-        <h3 className="text-lg font-black text-white">{user.name}</h3>
-        <p className="text-xs font-mono font-bold text-sky-400 tracking-wider mb-2">ID: {user.id}</p>
-
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold mb-6">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-          <span>Active Friend</span>
-        </div>
-
-        {!isMe ? (
-          <div className="space-y-2.5">
-            <button
-              onClick={() => {
-                onRequestFriend(user.id);
-                onClose();
-              }}
-              className="w-full py-3 bg-gradient-to-r from-rose-600 to-sky-600 hover:from-rose-500 hover:to-sky-500 text-white font-black rounded-xl text-xs shadow-lg shadow-rose-600/30 transition-transform active:scale-95 flex items-center justify-center gap-2"
-            >
-              <UserPlus size={16} />
-              <span>Send Friend Request</span>
-            </button>
-
-            <button
-              onClick={() => {
-                onOpenDirectChat(user.id);
-                onClose();
-              }}
-              className="w-full py-2.5 bg-slate-900 border border-slate-800 hover:border-sky-500/40 text-slate-300 text-xs font-bold rounded-xl flex items-center justify-center gap-2"
-            >
-              <MessageCircle size={15} />
-              <span>Direct Message</span>
-            </button>
-          </div>
-        ) : (
-          <p className="text-xs text-slate-500 font-medium">This is your profile.</p>
-        )}
-      </motion.div>
-    </div>
-  );
-}
-
-// ==========================================
-// 8. PROFILE EDITOR MODAL
+// 5. PROFILE & DELETE ACCOUNT MODAL
 // ==========================================
 function ProfileModal({
   isOpen,
@@ -703,6 +628,7 @@ function ProfileModal({
   myPhone,
   onUpdateProfile,
   onLogout,
+  onDeleteAccount,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -712,6 +638,7 @@ function ProfileModal({
   myPhone: string;
   onUpdateProfile: (name: string, avatar: string) => void;
   onLogout: () => void;
+  onDeleteAccount: () => void;
 }) {
   const [name, setName] = useState(myName);
   const [avatar, setAvatar] = useState(myAvatar);
@@ -750,14 +677,14 @@ function ProfileModal({
               <X size={18} />
             </button>
 
-            <h3 className="text-lg font-black text-white text-center mb-1">Your Profile</h3>
+            <h3 className="text-lg font-black text-white text-center mb-1">Your Confidential Profile</h3>
             <p className="text-xs text-sky-400 font-mono text-center mb-1 font-bold">Fixed ID: {myFancyNumber}</p>
             <p className="text-[11px] text-slate-400 font-mono text-center mb-4">Phone: +91 {myPhone}</p>
 
             <div className="flex flex-col items-center mb-5">
               <div
                 onClick={() => avatarFileRef.current?.click()}
-                className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.4)] cursor-pointer group bg-black"
+                className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-rose-500 shadow-md cursor-pointer group bg-black"
               >
                 {avatar ? (
                   <img src={avatar} alt="Profile" className="w-full h-full object-cover" />
@@ -780,7 +707,7 @@ function ProfileModal({
               <p className="text-[10px] text-slate-400 mt-2 font-medium">Tap photo to change avatar</p>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div>
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
                   Display Name
@@ -796,17 +723,25 @@ function ProfileModal({
 
               <button
                 onClick={save}
-                className="w-full py-3 bg-gradient-to-r from-rose-600 to-sky-600 hover:from-rose-500 hover:to-sky-500 text-white font-bold rounded-xl text-xs shadow-lg shadow-rose-600/30 transition-transform active:scale-95"
+                className="w-full py-2.5 bg-gradient-to-r from-rose-600 to-sky-600 hover:from-rose-500 hover:to-sky-500 text-white font-bold rounded-xl text-xs shadow-md transition-transform active:scale-95"
               >
                 Save Profile
               </button>
 
               <button
                 onClick={onLogout}
-                className="w-full py-2.5 bg-slate-950 border border-rose-500/40 hover:bg-rose-500/10 text-rose-400 font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5"
+                className="w-full py-2 bg-slate-950 border border-slate-800 hover:bg-slate-800 text-slate-300 font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5"
               >
                 <LogOut size={14} />
-                <span>Logout / Switch Account</span>
+                <span>Logout Session</span>
+              </button>
+
+              <button
+                onClick={onDeleteAccount}
+                className="w-full py-2 bg-red-950/30 border border-red-600/50 hover:bg-red-900/40 text-red-400 font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5"
+              >
+                <Trash2 size={14} />
+                <span>Delete Account Permanently</span>
               </button>
             </div>
           </motion.div>
@@ -817,7 +752,7 @@ function ProfileModal({
 }
 
 // ==========================================
-// 9. LOGIN & PIN REGISTRATION MODAL
+// 6. LOGIN & REGISTRATION MODAL
 // ==========================================
 function AuthSecurityModal({
   isOpen,
@@ -838,8 +773,8 @@ function AuthSecurityModal({
     setError("");
 
     const cleanPhone = phone.trim().replace(/\D/g, "");
-    if (cleanPhone.length !== 10) {
-      setError("Please enter a valid 10-digit mobile number.");
+    if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+      setError("Please enter a valid 10-digit Indian mobile number (starts with 6, 7, 8, or 9).");
       return;
     }
 
@@ -928,7 +863,7 @@ function AuthSecurityModal({
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="w-full max-w-sm bg-slate-900 border border-sky-500/40 rounded-3xl p-6 shadow-[0_0_50px_rgba(56,189,248,0.25)] relative"
+        className="w-full max-w-sm bg-slate-900 border border-sky-500/40 rounded-3xl p-6 shadow-2xl relative"
       >
         <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-rose-500 via-sky-500 to-indigo-600 flex items-center justify-center mx-auto text-white shadow-lg mb-4">
           <Lock size={26} />
@@ -996,7 +931,7 @@ function AuthSecurityModal({
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Thalapathy Fan / Koushik"
+                placeholder="Enter your name..."
                 className="w-full px-3 py-2.5 text-xs rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 outline-none focus:border-sky-500"
                 required
               />
@@ -1017,7 +952,7 @@ function AuthSecurityModal({
 }
 
 // ==========================================
-// 10. REASSEMBLE CHUNKED VIDEO PLAYER
+// 7. CHUNKED VIDEO PLAYER FOR STREAMING
 // ==========================================
 function ChunkedVideoPlayer({ mediaId, mimeType }: { mediaId: string; mimeType: string }) {
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
@@ -1051,9 +986,9 @@ function ChunkedVideoPlayer({ mediaId, mimeType }: { mediaId: string; mimeType: 
 
   if (loading) {
     return (
-      <div className="w-56 h-36 rounded-xl bg-slate-950 flex flex-col items-center justify-center p-3 border border-slate-800 text-center">
+      <div className="w-52 h-32 rounded-xl bg-slate-950 flex flex-col items-center justify-center p-3 border border-slate-800 text-center">
         <span className="w-5 h-5 border-2 border-sky-400 border-t-transparent rounded-full animate-spin mb-2" />
-        <p className="text-[10px] text-sky-400 font-mono font-bold">Loading Video...</p>
+        <p className="text-[10px] text-sky-400 font-mono font-bold">Streaming Video...</p>
       </div>
     );
   }
@@ -1066,68 +1001,62 @@ function ChunkedVideoPlayer({ mediaId, mimeType }: { mediaId: string; mimeType: 
 }
 
 // ==========================================
-// 11. MASTER CHAT WORKSPACE (BI-DIRECTIONAL SYNC)
+// 8. MASTER CHAT WORKSPACE
 // ==========================================
+interface UserItem {
+  id: string;
+  name: string;
+  avatar: string;
+}
+
 interface Message {
   id: string;
   text: string;
   senderId: string;
   senderName?: string;
   senderAvatar?: string;
-  type: "text" | "meme" | "image" | "video" | "chunked_video" | "audio";
+  type: "text" | "sticker" | "image" | "video" | "chunked_video" | "audio";
   mediaId?: string;
   mimeType?: string;
-  memeMeta?: { quote: string; actor: string; movie: string };
-  reactions?: Record<string, string>;
+  read?: boolean;
   createdAt?: any;
 }
 
-interface ChatRequest {
+interface PendingRequest {
   id: string;
   from: string;
-  to: string;
-  status: "pending" | "accepted" | "declined";
-  createdAt?: any;
+  fromName?: string;
+  fromAvatar?: string;
 }
 
 export default function ChatPage() {
   const [message, setMessage] = useState("");
-  const [showMemes, setShowMemes] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [myFancyNumber, setMyFancyNumber] = useState("");
   const [myName, setMyName] = useState("");
   const [myAvatar, setMyAvatar] = useState("");
   const [myPhone, setMyPhone] = useState("");
-  const [targetId, setTargetId] = useState("");
-  const [activeChat, setActiveChat] = useState<{ id: string; name: string; isGlobal: boolean; isAccepted?: boolean }>({
-    id: "global",
-    name: "Global Lounge",
-    isGlobal: true,
-    isAccepted: true,
-  });
 
-  // Dynamic Friends List (Synced Bi-directionally via Firestore)
-  const [friendsList, setFriendsList] = useState<string[]>([]);
+  const [targetSearchId, setTargetSearchId] = useState("");
+  const [acceptedFriends, setAcceptedFriends] = useState<UserItem[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
+  const [activePartner, setActivePartner] = useState<UserItem | null>(null);
+
   const [callActive, setCallActive] = useState(false);
   const [callIsVideo, setCallIsVideo] = useState(true);
-  const [heartTrigger, setHeartTrigger] = useState(0);
   const [copied, setCopied] = useState(false);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [showStickers, setShowStickers] = useState(false);
 
-  // User Profile Inspection Card State
-  const [inspectedUser, setInspectedUser] = useState<{ id: string; name: string; avatar: string } | null>(null);
+  // Three-dots menu & Media view modal
+  const [showMenu, setShowMenu] = useState(false);
+  const [showMediaModal, setShowMediaModal] = useState(false);
+  const [chatTheme, setChatTheme] = useState<"neon" | "blue" | "emerald">("neon");
 
-  // Notification Permission State
-  const [showNotifPrompt, setShowNotifPrompt] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [activeToast, setActiveToast] = useState<{ sender: string; text: string; userObj: UserItem } | null>(null);
 
-  // Incoming Requests & Push Notification Toast
-  const [incomingRequests, setIncomingRequests] = useState<ChatRequest[]>([]);
-  const [activeToast, setActiveToast] = useState<{ sender: string; text: string; roomId: string } | null>(null);
-
-  // Audio Recorder States
   const [isRecording, setIsRecording] = useState(false);
   const [recordSec, setRecordSec] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -1136,6 +1065,7 @@ export default function ChatPage() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -1149,28 +1079,22 @@ export default function ChatPage() {
     toggleVideo,
   } = useInlineAgora();
 
-  // Notification Permission Check
+  // Register Service Worker on Load for Mobile Notifications
   useEffect(() => {
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch((err) => {
+        console.warn("ServiceWorker registration:", err);
+      });
+    }
+
     if (typeof window !== "undefined" && "Notification" in window) {
       if (Notification.permission === "default") {
-        setShowNotifPrompt(true);
+        Notification.requestPermission();
       }
     }
   }, []);
 
-  const requestNotificationAccess = async () => {
-    if (typeof window !== "undefined" && "Notification" in window) {
-      const perm = await Notification.requestPermission();
-      if (perm === "granted") {
-        setShowNotifPrompt(false);
-        triggerMobileSystemNotification("Notifications Enabled! 🔔", "You will now receive alerts even when outside Lets Chat.");
-      } else {
-        setShowNotifPrompt(false);
-      }
-    }
-  };
-
-  // Auth & Permanent Identity Init
+  // Authentication check
   useEffect(() => {
     const savedPhone = localStorage.getItem("lovechat_perm_phone");
     const savedId = localStorage.getItem("lovechat_perm_id");
@@ -1189,78 +1113,110 @@ export default function ChatPage() {
     }
   }, []);
 
-  // =========================================================================
-  // BI-DIRECTIONAL REAL-TIME FRIEND SYNC
-  // Listen for both:
-  // 1) Requests sent TO me that are pending or accepted
-  // 2) Requests sent FROM me that were ACCEPTED by the other person!
-  // =========================================================================
+  // Confidential Contacts & Request Sync
   useEffect(() => {
     if (!myFancyNumber) return;
 
-    // 1. Incoming Pending Requests
-    const qIncoming = query(
+    const qPending = query(
       collection(db, "chat_requests"),
       where("to", "==", myFancyNumber),
       where("status", "==", "pending")
     );
-    const unsubIncoming = onSnapshot(qIncoming, (snap) => {
-      const reqs = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<ChatRequest, "id">) }));
-      if (reqs.length > incomingRequests.length) {
-        triggerMobileSystemNotification("New Friend Request! 💌", `${reqs[0]?.from} wants to connect with you.`);
+    const unsubPending = onSnapshot(qPending, async (snap) => {
+      const list: PendingRequest[] = [];
+      for (const d of snap.docs) {
+        const data = d.data();
+        let name = data.fromName || `User-${data.from.slice(-4)}`;
+        let avatar = data.fromAvatar || "";
+        try {
+          const userSnap = await getDoc(doc(db, "users", data.from));
+          if (userSnap.exists()) {
+            name = userSnap.data().name || name;
+            avatar = userSnap.data().avatar || avatar;
+          }
+        } catch (e) {}
+        list.push({ id: d.id, from: data.from, fromName: name, fromAvatar: avatar });
       }
-      setIncomingRequests(reqs);
+      setPendingRequests(list);
     });
 
-    // 2. Friends who accepted requests I SENT to them!
-    const qSentAccepted = query(
+    const qSent = query(
       collection(db, "chat_requests"),
       where("from", "==", myFancyNumber),
       where("status", "==", "accepted")
     );
-    const unsubSentAccepted = onSnapshot(qSentAccepted, (snap) => {
-      const acceptedPartners = snap.docs.map((d) => d.data().to);
-      setFriendsList((prev) => Array.from(new Set([...prev, ...acceptedPartners])));
+    const unsubSent = onSnapshot(qSent, async (snap) => {
+      const partnerIds = snap.docs.map((d) => d.data().to);
+      loadFriendProfiles(partnerIds);
     });
 
-    // 3. Friends whose requests I ACCEPTED!
-    const qReceivedAccepted = query(
+    const qReceived = query(
       collection(db, "chat_requests"),
       where("to", "==", myFancyNumber),
       where("status", "==", "accepted")
     );
-    const unsubReceivedAccepted = onSnapshot(qReceivedAccepted, (snap) => {
-      const acceptedPartners = snap.docs.map((d) => d.data().from);
-      setFriendsList((prev) => Array.from(new Set([...prev, ...acceptedPartners])));
+    const unsubReceived = onSnapshot(qReceived, async (snap) => {
+      const partnerIds = snap.docs.map((d) => d.data().from);
+      loadFriendProfiles(partnerIds);
     });
 
-    return () => {
-      unsubIncoming();
-      unsubSentAccepted();
-      unsubReceivedAccepted();
+    const loadFriendProfiles = async (ids: string[]) => {
+      if (ids.length === 0) return;
+      for (const partnerId of ids) {
+        try {
+          const userSnap = await getDoc(doc(db, "users", partnerId));
+          const userData = userSnap.exists() ? userSnap.data() : {};
+          setAcceptedFriends((prev) => {
+            const exists = prev.some((p) => p.id === partnerId);
+            if (exists) return prev;
+            return [
+              ...prev,
+              {
+                id: partnerId,
+                name: userData.name || `User-${partnerId.slice(-4)}`,
+                avatar: userData.avatar || "",
+              },
+            ];
+          });
+        } catch (e) {}
+      }
     };
-  }, [myFancyNumber, incomingRequests.length]);
 
-  // Listen for Messages in Active Room
+    return () => {
+      unsubPending();
+      unsubSent();
+      unsubReceived();
+    };
+  }, [myFancyNumber]);
+
+  // Messages listener for selected partner
   useEffect(() => {
-    if (!myFancyNumber) return;
+    if (!myFancyNumber || !activePartner) {
+      setMessages([]);
+      return;
+    }
 
-    const messagesRef = activeChat.isGlobal
-      ? collection(db, "global_messages")
-      : collection(db, "private_chats", activeChat.id, "messages");
-
+    const roomId = [myFancyNumber, activePartner.id].sort().join("_");
+    const messagesRef = collection(db, "private_chats", roomId, "messages");
     const q = query(messagesRef, orderBy("createdAt", "asc"));
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const fetched = snapshot.docs.map((docSnap) => ({
-        id: docSnap.id,
-        ...(docSnap.data() as Omit<Message, "id">),
-      }));
+      const fetched = snapshot.docs.map((docSnap) => {
+        const data = docSnap.data();
+        if (data.senderId !== myFancyNumber && !data.read) {
+          updateDoc(docSnap.ref, { read: true });
+        }
+        return {
+          id: docSnap.id,
+          ...(data as Omit<Message, "id">),
+        };
+      });
       setMessages(fetched);
 
       const lastMsg = fetched[fetched.length - 1];
       if (lastMsg && lastMsg.senderId !== myFancyNumber) {
         const previewText =
-          lastMsg.type === "meme"
+          lastMsg.type === "sticker"
             ? "Sent a Tamil Meme"
             : lastMsg.type === "video" || lastMsg.type === "chunked_video"
             ? "Sent a Video"
@@ -1268,53 +1224,88 @@ export default function ChatPage() {
             ? "Sent a Voice Note"
             : lastMsg.text;
 
-        if (typeof document !== "undefined" && document.visibilityState === "hidden") {
-          triggerMobileSystemNotification(`${lastMsg.senderName || lastMsg.senderId}`, previewText, lastMsg.senderAvatar);
-        } else {
-          playNotificationChime();
-        }
+        triggerMobileStatusBarNotification(
+          `${lastMsg.senderName || lastMsg.senderId} (ID: ${lastMsg.senderId})`,
+          previewText,
+          lastMsg.senderAvatar
+        );
 
         setActiveToast({
           sender: lastMsg.senderName || lastMsg.senderId,
           text: previewText,
-          roomId: activeChat.id,
+          userObj: activePartner,
         });
-
-        if (lastMsg.text.includes("❤️")) {
-          setHeartTrigger((prev) => prev + 1);
-        }
       }
 
       setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
     });
 
     return () => unsubscribe();
-  }, [activeChat, myFancyNumber]);
+  }, [activePartner, myFancyNumber]);
 
-  // Inspect User Profile when Tapping their Avatar / Name
-  const inspectUser = async (userId: string, currentName?: string, currentAvatar?: string) => {
+  const handleSendFriendRequest = async () => {
+    const cleanTarget = targetSearchId.trim().replace(/\D/g, "");
+    if (cleanTarget.length !== 10) {
+      alert("Please enter a valid 10-digit Fancy ID.");
+      return;
+    }
+    if (cleanTarget === myFancyNumber) {
+      alert("You cannot add your own ID.");
+      return;
+    }
+
     try {
-      const userDoc = await getDoc(doc(db, "users", userId));
-      if (userDoc.exists()) {
-        const data = userDoc.data();
-        setInspectedUser({
-          id: userId,
-          name: data.name || currentName || userId,
-          avatar: data.avatar || currentAvatar || "",
-        });
-      } else {
-        setInspectedUser({
-          id: userId,
-          name: currentName || userId,
-          avatar: currentAvatar || "",
-        });
+      const targetUserSnap = await getDoc(doc(db, "users", cleanTarget));
+      if (!targetUserSnap.exists()) {
+        alert("No user registered with this 10-digit ID. Please check the number.");
+        return;
       }
-    } catch (e) {
-      setInspectedUser({
-        id: userId,
-        name: currentName || userId,
-        avatar: currentAvatar || "",
+
+      await addDoc(collection(db, "chat_requests"), {
+        from: myFancyNumber,
+        fromName: myName,
+        fromAvatar: myAvatar,
+        to: cleanTarget,
+        status: "pending",
+        createdAt: serverTimestamp(),
       });
+
+      alert(`Friend request sent to ID ${cleanTarget}! Once they accept, they will appear in your contacts.`);
+      setTargetSearchId("");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to send request.");
+    }
+  };
+
+  const handleAcceptRequest = async (req: PendingRequest) => {
+    try {
+      await updateDoc(doc(db, "chat_requests", req.id), { status: "accepted" });
+
+      const newFriend: UserItem = {
+        id: req.from,
+        name: req.fromName || `User-${req.from.slice(-4)}`,
+        avatar: req.fromAvatar || "",
+      };
+
+      setAcceptedFriends((prev) => {
+        if (prev.some((p) => p.id === req.from)) return prev;
+        return [...prev, newFriend];
+      });
+
+      setPendingRequests((prev) => prev.filter((r) => r.id !== req.id));
+      setActivePartner(newFriend);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleDeclineRequest = async (reqId: string) => {
+    try {
+      await updateDoc(doc(db, "chat_requests", reqId), { status: "declined" });
+      setPendingRequests((prev) => prev.filter((r) => r.id !== reqId));
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -1332,12 +1323,54 @@ export default function ChatPage() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("lovechat_perm_phone");
-    localStorage.removeItem("lovechat_perm_id");
-    localStorage.removeItem("lovechat_perm_name");
-    localStorage.removeItem("lovechat_perm_avatar");
+    localStorage.clear();
     setIsProfileOpen(false);
     setIsAuthModalOpen(true);
+  };
+
+  const handleDeleteChatHistory = async () => {
+    if (!activePartner || !myFancyNumber) return;
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete all chat history with ${activePartner.name}? This cannot be undone.`
+    );
+    if (!confirmDelete) return;
+
+    try {
+      const roomId = [myFancyNumber, activePartner.id].sort().join("_");
+      const messagesRef = collection(db, "private_chats", roomId, "messages");
+      const snap = await getDocs(messagesRef);
+
+      const deletePromises = snap.docs.map((docSnap) => deleteDoc(docSnap.ref));
+      await Promise.all(deletePromises);
+      alert("Chat history cleared successfully.");
+      setShowMenu(false);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to clear chat history.");
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    const confirmDelete = window.confirm(
+      "WARNING: This will permanently delete your user profile and registered ID. Continue?"
+    );
+    if (!confirmDelete) return;
+
+    try {
+      if (myFancyNumber) {
+        await deleteDoc(doc(db, "users", myFancyNumber));
+      }
+      if (myPhone) {
+        await deleteDoc(doc(db, "phone_accounts", myPhone));
+      }
+      localStorage.clear();
+      setIsProfileOpen(false);
+      setIsAuthModalOpen(true);
+      alert("Your account has been deleted permanently.");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete account.");
+    }
   };
 
   const handleUpdateProfile = (newName: string, newAvatar: string) => {
@@ -1354,66 +1387,16 @@ export default function ChatPage() {
     }
   };
 
-  // Connection Request Management
-  const sendConnectionRequest = async (partnerId: string) => {
-    if (!partnerId || partnerId === myFancyNumber) return;
-
-    try {
-      await addDoc(collection(db, "chat_requests"), {
-        from: myFancyNumber,
-        to: partnerId,
-        status: "pending",
-        createdAt: serverTimestamp(),
-      });
-      alert(`Friend request sent to ${partnerId}! When they accept, your private chat will unlock immediately on both phones.`);
-      setTargetId("");
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const acceptConnectionRequest = async (req: ChatRequest) => {
-    try {
-      await updateDoc(doc(db, "chat_requests", req.id), { status: "accepted" });
-
-      const roomId = [myFancyNumber, req.from].sort().join("_");
-      setActiveChat({ id: roomId, name: req.from, isGlobal: false, isAccepted: true });
-
-      setFriendsList((prev) => Array.from(new Set([...prev, req.from])));
-      setIncomingRequests((prev) => prev.filter((r) => r.id !== req.id));
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const declineConnectionRequest = async (reqId: string) => {
-    try {
-      await updateDoc(doc(db, "chat_requests", reqId), { status: "declined" });
-      setIncomingRequests((prev) => prev.filter((r) => r.id !== reqId));
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const selectPrivateChat = (partnerId: string) => {
-    if (!partnerId || partnerId === myFancyNumber) return;
-    const roomId = [myFancyNumber, partnerId].sort().join("_");
-    setActiveChat({ id: roomId, name: partnerId, isGlobal: false, isAccepted: true });
-    setTargetId("");
-    setIsDrawerOpen(false);
-  };
-
   const sendMessage = async (
     text: string,
-    type: "text" | "meme" | "image" | "video" | "chunked_video" | "audio" = "text",
-    memeMeta?: { quote: string; actor: string; movie: string },
+    type: "text" | "sticker" | "image" | "video" | "chunked_video" | "audio" = "text",
     extraPayload?: Record<string, any>
   ) => {
     if (!text.trim() && type === "text") return;
+    if (!activePartner) return;
 
-    const messagesRef = activeChat.isGlobal
-      ? collection(db, "global_messages")
-      : collection(db, "private_chats", activeChat.id, "messages");
+    const roomId = [myFancyNumber, activePartner.id].sort().join("_");
+    const messagesRef = collection(db, "private_chats", roomId, "messages");
 
     try {
       await addDoc(messagesRef, {
@@ -1423,7 +1406,7 @@ export default function ChatPage() {
         senderAvatar: myAvatar || "",
         createdAt: serverTimestamp(),
         type,
-        ...(memeMeta ? { memeMeta } : {}),
+        read: false,
         ...(extraPayload ? extraPayload : {}),
       });
       setMessage("");
@@ -1432,21 +1415,6 @@ export default function ChatPage() {
     }
   };
 
-  const addReactionToMessage = async (msgId: string, emoji: string) => {
-    const messageDocRef = activeChat.isGlobal
-      ? doc(db, "global_messages", msgId)
-      : doc(db, "private_chats", activeChat.id, "messages", msgId);
-
-    try {
-      await updateDoc(messageDocRef, {
-        [`reactions.${myFancyNumber}`]: emoji,
-      });
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  // Video & Large Media Upload Engine
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -1474,7 +1442,7 @@ export default function ChatPage() {
           setUploadProgress(Math.round(((i + 1) / totalChunks) * 100));
         }
 
-        await sendMessage("[Video Media]", "chunked_video", undefined, {
+        await sendMessage("[Video Media]", "chunked_video", {
           mediaId,
           mimeType: file.type || "video/mp4",
         });
@@ -1492,6 +1460,7 @@ export default function ChatPage() {
     }
 
     if (fileInputRef.current) fileInputRef.current.value = "";
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
     if (audioInputRef.current) audioInputRef.current.value = "";
   };
 
@@ -1551,15 +1520,12 @@ export default function ChatPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const triggerLoveBurst = () => {
-    setHeartTrigger((prev) => prev + 1);
-    sendMessage("❤️❤️❤️ LOVE SHOWER ❤️❤️❤️", "text");
-  };
-
   const initiateCall = async (video: boolean) => {
+    if (!activePartner) return;
+    const roomId = [myFancyNumber, activePartner.id].sort().join("_");
     setCallIsVideo(video);
     setCallActive(true);
-    await startCall(activeChat.id, video);
+    await startCall(roomId, video);
   };
 
   const terminateCall = async () => {
@@ -1567,55 +1533,23 @@ export default function ChatPage() {
     setCallActive(false);
   };
 
+  // Media, Links & Docs for active room
+  const mediaMessages = messages.filter((m) => m.type === "image" || m.type === "video" || m.type === "chunked_video");
+
   return (
-    <div className="flex h-screen w-full bg-black text-slate-100 overflow-hidden font-sans select-none relative">
-      <InlineHeartShower trigger={heartTrigger} />
-
-      {/* Mobile Push Notification Permission Prompt */}
-      <AnimatePresence>
-        {showNotifPrompt && (
-          <motion.div
-            initial={{ y: -80, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: -80, opacity: 0 }}
-            className="fixed top-3 inset-x-3 sm:max-w-md sm:mx-auto z-50 bg-gradient-to-r from-slate-900 to-sky-950 border border-sky-500/70 p-3.5 rounded-2xl shadow-[0_0_30px_rgba(56,189,248,0.4)] backdrop-blur-2xl flex items-center justify-between"
-          >
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center border border-sky-500/40">
-                <BellRing size={16} className="animate-bounce" />
-              </div>
-              <div>
-                <p className="text-xs font-black text-white">Enable Mobile Alerts?</p>
-                <p className="text-[10px] text-slate-300">Get alerts even when app is closed</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowNotifPrompt(false)}
-                className="text-[10px] text-slate-400 hover:text-white px-2 py-1"
-              >
-                Later
-              </button>
-              <button
-                onClick={requestNotificationAccess}
-                className="text-[11px] font-bold bg-sky-500 hover:bg-sky-400 text-black px-3 py-1.5 rounded-xl shadow-md"
-              >
-                Allow
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Floating In-App Notification Card */}
+    <div className="fixed inset-0 h-[100dvh] w-full overflow-hidden bg-black text-slate-100 font-sans select-none flex flex-row">
+      {/* Floating In-App Toast */}
       <AnimatePresence>
         {activeToast && (
           <motion.div
             initial={{ y: -60, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -60, opacity: 0 }}
-            onClick={() => setActiveToast(null)}
-            className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900/90 border border-sky-500/60 shadow-[0_0_25px_rgba(56,189,248,0.4)] backdrop-blur-xl px-4 py-2.5 rounded-2xl flex items-center gap-3 cursor-pointer max-w-sm w-[90%]"
+            onClick={() => {
+              setActivePartner(activeToast.userObj);
+              setActiveToast(null);
+            }}
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900/90 border border-sky-500/60 shadow-xl backdrop-blur-xl px-4 py-2.5 rounded-2xl flex items-center gap-3 cursor-pointer max-w-sm w-[90%]"
           >
             <div className="w-8 h-8 rounded-full bg-rose-500 flex items-center justify-center text-white text-xs font-bold shadow-md">
               <Bell size={14} className="animate-bounce" />
@@ -1631,72 +1565,45 @@ export default function ChatPage() {
         )}
       </AnimatePresence>
 
-      {/* Clean Ocean Blue & Warm Rose Glows */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-sky-500/10 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-rose-500/15 rounded-full blur-[140px] pointer-events-none" />
+      {/* Background Aura */}
+      <div className={`absolute top-0 left-1/4 w-96 h-96 ${chatTheme === "blue" ? "bg-sky-500/15" : chatTheme === "emerald" ? "bg-emerald-500/15" : "bg-rose-500/15"} rounded-full blur-[140px] pointer-events-none transition-colors duration-500`} />
 
-      {/* Mobile Drawer Overlay */}
-      <AnimatePresence>
-        {isDrawerOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setIsDrawerOpen(false)}
-            className="fixed inset-0 bg-black/85 backdrop-blur-md z-30 md:hidden"
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Navigation Drawer */}
+      {/* CONFIDENTIAL CONTACTS SIDEBAR */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-80 bg-slate-950/95 backdrop-blur-2xl border-r border-sky-950/40 transition-transform duration-300 ease-in-out md:static md:translate-x-0 ${
-          isDrawerOpen ? "translate-x-0 shadow-[0_0_50px_rgba(56,189,248,0.2)]" : "-translate-x-full"
+        className={`w-full md:w-80 h-full flex flex-col bg-slate-950 border-r border-slate-900 z-30 transition-all ${
+          activePartner ? "hidden md:flex" : "flex"
         }`}
       >
-        <div className="p-4 border-b border-slate-900 bg-black/60">
+        <div className="p-4 border-b border-slate-900 bg-black/60 flex-shrink-0">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2.5">
               <div
                 onClick={() => setIsProfileOpen(true)}
-                className="relative w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-500 via-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-[0_0_15px_rgba(244,63,94,0.5)] cursor-pointer overflow-hidden border border-rose-400/40"
+                className="relative w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-500 via-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-md cursor-pointer overflow-hidden border border-rose-400/40"
               >
                 {myAvatar ? (
                   <img src={myAvatar} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
-                  <Heart size={18} className="fill-white" />
+                  <User size={18} />
                 )}
               </div>
               <div>
-                <h1 className="text-base font-black tracking-tight bg-gradient-to-r from-rose-400 via-sky-300 to-indigo-400 bg-clip-text text-transparent">
-                  {myName || "Lets Chat"}
-                </h1>
-                <p className="text-[10px] text-sky-400 font-bold tracking-widest uppercase">
-                  Friends & Love Chat
-                </p>
+                <h1 className="text-base font-black tracking-tight text-white">{myName || "Lets Chat"}</h1>
+                <p className="text-[10px] text-sky-400 font-bold tracking-widest uppercase">My Profile</p>
               </div>
             </div>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setIsProfileOpen(true)}
-                className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors"
-                title="Edit Profile"
-              >
-                <Settings size={16} />
-              </button>
-              <button
-                onClick={() => setIsDrawerOpen(false)}
-                className="p-2 rounded-xl text-slate-400 hover:text-white md:hidden"
-              >
-                <X size={18} />
-              </button>
-            </div>
+            <button
+              onClick={() => setIsProfileOpen(true)}
+              className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors"
+              title="Edit Profile"
+            >
+              <Settings size={16} />
+            </button>
           </div>
 
-          {/* Sequential 10-Digit ID Card */}
           <div className="flex items-center justify-between p-2.5 rounded-2xl bg-slate-900/90 border border-sky-500/30 shadow-inner">
             <div>
-              <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Permanent ID</p>
+              <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Your Confidential ID</p>
               <p className="text-sm font-mono font-black text-rose-400 tracking-widest">
                 {myFancyNumber || "0000000001"}
               </p>
@@ -1710,403 +1617,510 @@ export default function ChatPage() {
             </button>
           </div>
 
-          {/* Request / Search ID Input */}
-          <div className="mt-3 relative">
-            <input
-              type="text"
-              value={targetId}
-              onChange={(e) => setTargetId(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && sendConnectionRequest(targetId.trim())}
-              placeholder="Search ID (e.g. 0000000002)..."
-              className="w-full pl-9 pr-8 py-2 text-xs rounded-xl bg-slate-900 border border-slate-800 text-slate-200 placeholder-slate-500 outline-none focus:border-sky-500 transition-all font-mono"
-            />
-            <Search size={14} className="absolute left-3 top-2.5 text-slate-500" />
-            {targetId && (
-              <button
-                onClick={() => sendConnectionRequest(targetId.trim())}
-                className="absolute right-2 top-1.5 p-1 rounded-lg bg-sky-600 text-white hover:bg-sky-500"
-                title="Send Chat Request"
-              >
-                <UserPlus size={13} />
-              </button>
-            )}
+          {/* Add Partner by 10-Digit ID */}
+          <div className="mt-3 flex gap-1.5">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                maxLength={10}
+                value={targetSearchId}
+                onChange={(e) => setTargetSearchId(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSendFriendRequest()}
+                placeholder="Enter friend's 10-digit ID..."
+                className="w-full pl-8 pr-2 py-2 text-xs rounded-xl bg-slate-900 border border-slate-800 text-white placeholder-slate-500 outline-none focus:border-sky-500 font-mono"
+              />
+              <Search size={14} className="absolute left-2.5 top-2.5 text-slate-500" />
+            </div>
+            <button
+              onClick={handleSendFriendRequest}
+              className="px-3 py-2 bg-gradient-to-r from-rose-600 to-sky-600 hover:from-rose-500 hover:to-sky-500 text-white text-xs font-bold rounded-xl flex items-center gap-1 shadow-md"
+            >
+              <UserPlus size={14} />
+              <span>Request</span>
+            </button>
           </div>
         </div>
 
-        {/* Incoming Connection Requests Banner */}
-        {incomingRequests.length > 0 && (
+        {/* Pending Requests Section */}
+        {pendingRequests.length > 0 && (
           <div className="p-3 bg-rose-500/10 border-b border-rose-500/30">
-            <div className="flex items-center gap-1.5 mb-2 text-rose-400 font-bold text-xs">
-              <Bell size={14} className="animate-bounce" />
-              <span>Incoming Friend Requests</span>
+            <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest mb-2 flex items-center gap-1">
+              <Bell size={12} className="animate-bounce" />
+              <span>Pending Requests ({pendingRequests.length})</span>
+            </p>
+            <div className="space-y-2">
+              {pendingRequests.map((req) => (
+                <div key={req.id} className="p-2.5 rounded-xl bg-slate-900 border border-rose-500/40 flex items-center justify-between">
+                  <div className="overflow-hidden">
+                    <p className="text-xs font-bold text-white truncate">{req.fromName}</p>
+                    <p className="text-[10px] text-sky-400 font-mono">ID: {req.from}</p>
+                  </div>
+                  <div className="flex gap-1.5">
+                    <button
+                      onClick={() => handleAcceptRequest(req)}
+                      className="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold rounded-lg"
+                    >
+                      Accept
+                    </button>
+                    <button
+                      onClick={() => handleDeclineRequest(req.id)}
+                      className="px-2 py-1 bg-slate-800 text-slate-400 hover:text-white text-[10px] rounded-lg"
+                    >
+                      Ignore
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
-            {incomingRequests.map((req) => (
-              <div key={req.id} className="p-2.5 rounded-xl bg-slate-900 border border-rose-500/40 flex items-center justify-between mb-2">
-                <div>
-                  <p className="text-xs font-mono font-bold text-white">{req.from}</p>
-                  <p className="text-[10px] text-slate-400">Wants to chat with you!</p>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => acceptConnectionRequest(req)}
-                    className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold shadow-md"
-                  >
-                    Accept
-                  </button>
-                  <button
-                    onClick={() => declineConnectionRequest(req.id)}
-                    className="px-2 py-1 rounded-lg bg-slate-800 text-slate-400 text-[10px] hover:text-white"
-                  >
-                    Ignore
-                  </button>
-                </div>
-              </div>
-            ))}
           </div>
         )}
 
-        <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
-          <div
-            onClick={() => {
-              setActiveChat({ id: "global", name: "Global Lounge", isGlobal: true, isAccepted: true });
-              setIsDrawerOpen(false);
-            }}
-            className={`p-3 rounded-2xl cursor-pointer transition-all flex items-center justify-between ${
-              activeChat.isGlobal
-                ? "bg-gradient-to-r from-rose-500/20 via-sky-500/20 to-indigo-500/20 border border-sky-500/50 text-sky-300 font-bold shadow-[0_0_20px_rgba(56,189,248,0.2)]"
-                : "text-slate-300 hover:bg-slate-900/60"
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <Globe size={16} className={activeChat.isGlobal ? "text-sky-400" : "text-slate-400"} />
-              <span className="text-xs">Global Lounge</span>
-            </div>
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+        {/* Accepted Contacts Directory */}
+        <div className="flex-1 overflow-y-auto p-3 space-y-2">
+          <div className="flex items-center gap-1.5 px-1 text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">
+            <ShieldCheck size={14} className="text-sky-400" />
+            <span>My Confidential Contacts</span>
           </div>
 
-          <div className="pt-3">
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2 mb-2">
-              Friends & Contacts
-            </p>
-            {friendsList.length === 0 ? (
-              <div className="p-4 text-center rounded-2xl border border-dashed border-slate-800 text-slate-500 text-xs">
-                No friends yet. Tap anyone's ID in Global Lounge to send a request!
+          {acceptedFriends.length === 0 ? (
+            <div className="p-8 text-center text-slate-500 text-xs">
+              <div className="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center text-slate-400 mx-auto mb-2 border border-slate-800">
+                <Shield size={22} />
               </div>
-            ) : (
-              friendsList.map((id) => (
+              <p className="font-bold text-white mb-1">Your contact list is private & empty</p>
+              <p className="text-[11px] text-slate-400">
+                Enter your friend's 10-digit ID above to send a private connection request.
+              </p>
+            </div>
+          ) : (
+            acceptedFriends.map((f) => {
+              const isSelected = activePartner?.id === f.id;
+              return (
                 <div
-                  key={id}
-                  onClick={() => selectPrivateChat(id)}
-                  className={`p-2.5 rounded-2xl cursor-pointer transition-all flex items-center justify-between ${
-                    activeChat.name === id
-                      ? "bg-slate-900 border border-rose-500/50 text-rose-300 font-bold shadow-[0_0_15px_rgba(244,63,94,0.3)]"
-                      : "text-slate-400 hover:bg-slate-900/40 hover:text-slate-200"
+                  key={f.id}
+                  onClick={() => setActivePartner(f)}
+                  className={`p-3 rounded-2xl cursor-pointer transition-all flex items-center justify-between border ${
+                    isSelected
+                      ? "bg-slate-900 border-sky-500/60 shadow-md"
+                      : "bg-slate-950 hover:bg-slate-900/60 border-slate-900"
                   }`}
                 >
-                  <div className="flex items-center gap-2">
-                    <UserCheck size={14} className="text-sky-400" />
-                    <span className="text-xs font-mono font-semibold">{id}</span>
+                  <div className="flex items-center gap-3">
+                    <div className="relative w-11 h-11 rounded-full overflow-hidden border border-rose-500/40 bg-slate-900 flex items-center justify-center text-sky-400 font-bold">
+                      {f.avatar ? (
+                        <img src={f.avatar} alt={f.name} className="w-full h-full object-cover" />
+                      ) : (
+                        f.name.charAt(0)
+                      )}
+                      <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 border border-black" />
+                    </div>
+
+                    <div>
+                      <h4 className="text-sm font-bold text-white leading-tight">{f.name}</h4>
+                      <p className="text-[10px] text-slate-400 font-mono mt-0.5">ID: {f.id}</p>
+                    </div>
                   </div>
-                  <ShieldCheck size={14} className="text-emerald-400" />
+
+                  <span className="text-xs bg-sky-500/10 text-sky-400 px-2.5 py-1 rounded-xl font-bold border border-sky-500/20">
+                    Chat
+                  </span>
                 </div>
-              ))
-            )}
-          </div>
+              );
+            })
+          )}
         </div>
       </aside>
 
-      {/* Main Chat Canvas */}
-      <main className="flex-1 flex flex-col relative bg-black/90">
-        <header className="h-16 flex items-center justify-between px-4 sm:px-6 bg-slate-950/80 backdrop-blur-xl border-b border-slate-900 z-10">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setIsDrawerOpen(true)}
-              className="p-2 -ml-2 rounded-xl text-slate-300 hover:text-white md:hidden"
-            >
-              <Menu size={22} />
-            </button>
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-500 to-sky-500 flex items-center justify-center text-white font-bold shadow-[0_0_15px_rgba(56,189,248,0.4)]">
-              {activeChat.isGlobal ? <Globe size={18} /> : <MessageCircle size={18} />}
+      {/* PRIVATE 1-ON-1 CHAT WORKSPACE */}
+      <main
+        className={`flex-1 flex flex-col h-full w-full overflow-hidden bg-black relative ${
+          !activePartner ? "hidden md:flex items-center justify-center" : "flex"
+        }`}
+      >
+        {!activePartner ? (
+          <div className="text-center p-8 text-slate-500 max-w-sm">
+            <div className="w-16 h-16 rounded-3xl bg-slate-900 flex items-center justify-center text-sky-400 mx-auto mb-3 border border-slate-800">
+              <MessageCircle size={28} />
             </div>
-            <div>
-              <h2 className="text-sm font-black text-slate-100 leading-tight">{activeChat.name}</h2>
-              <p className="text-[10px] text-sky-400 font-bold flex items-center gap-1 mt-0.5">
-                <Radio size={10} className="animate-pulse" />
-                Live Room
-              </p>
-            </div>
+            <h3 className="text-base font-bold text-white mb-1">No conversation selected</h3>
+            <p className="text-xs text-slate-400">
+              Your chats are end-to-end confidential. Enter a friend's 10-digit ID on the left to connect!
+            </p>
           </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => initiateCall(false)}
-              className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-sky-500 text-slate-300 hover:text-sky-400 transition-all active:scale-95"
-              title="Voice Call"
-            >
-              <Phone size={17} />
-            </button>
-            <button
-              onClick={() => initiateCall(true)}
-              className="p-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-sky-600 text-white font-bold transition-all shadow-[0_0_15px_rgba(244,63,94,0.4)] active:scale-95"
-              title="Video Call"
-            >
-              <Video size={17} />
-            </button>
-          </div>
-        </header>
-
-        {/* Message Thread */}
-        <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-3.5">
-          {messages.map((msg) => {
-            const isMe = msg.senderId === myFancyNumber;
-            const timeFormatted = msg.createdAt?.toDate
-              ? msg.createdAt.toDate().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-              : "...";
-
-            return (
-              <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"} group`}>
-                <div
-                  className={`relative p-3 rounded-2xl max-w-[85%] sm:max-w-[60%] shadow-lg ${
-                    isMe
-                      ? "bg-gradient-to-r from-rose-600 to-rose-500 text-white rounded-tr-none shadow-rose-600/30"
-                      : "bg-slate-900 text-slate-200 border border-slate-800 rounded-tl-none shadow-sky-950/40"
-                  }`}
+        ) : (
+          <>
+            {/* Header with Calls & Three-Dots Menu */}
+            <header className="h-14 sm:h-16 flex items-center justify-between px-3 sm:px-6 bg-slate-950 border-b border-slate-900 z-20 flex-shrink-0">
+              <div className="flex items-center gap-2.5 sm:gap-3">
+                <button
+                  onClick={() => setActivePartner(null)}
+                  className="p-1.5 -ml-1 text-slate-300 hover:text-white md:hidden"
+                  title="Back"
                 >
-                  {/* Floating Micro-Reaction Drawer */}
-                  <div
-                    className={`absolute -top-3 ${
-                      isMe ? "right-2" : "left-2"
-                    } opacity-0 group-hover:opacity-100 transition-opacity bg-slate-950 border border-sky-500/40 rounded-full px-2 py-0.5 flex items-center gap-1 shadow-lg z-20`}
-                  >
-                    {["❤️", "🔥", "😂", "😍", "👍"].map((emoji) => (
-                      <span
-                        key={emoji}
-                        onClick={() => addReactionToMessage(msg.id, emoji)}
-                        className="cursor-pointer hover:scale-125 transition-transform text-xs"
-                      >
-                        {emoji}
-                      </span>
-                    ))}
-                  </div>
+                  <ArrowLeft size={20} />
+                </button>
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl overflow-hidden border border-sky-400/40 bg-slate-900 flex items-center justify-center text-white font-bold flex-shrink-0">
+                  {activePartner.avatar ? (
+                    <img src={activePartner.avatar} alt={activePartner.name} className="w-full h-full object-cover" />
+                  ) : (
+                    activePartner.name.charAt(0)
+                  )}
+                </div>
+                <div>
+                  <h2 className="text-sm font-black text-slate-100 leading-tight">{activePartner.name}</h2>
+                  <p className="text-[10px] text-sky-400 font-mono mt-0.5">ID: {activePartner.id}</p>
+                </div>
+              </div>
 
-                  {/* SENDER IDENTITY: TAP TO OPEN PROFILE & SEND FRIEND REQUEST */}
-                  <div
-                    onClick={() => inspectUser(msg.senderId, msg.senderName, msg.senderAvatar)}
-                    className="flex items-center gap-2 mb-1.5 cursor-pointer hover:opacity-80 transition-opacity w-fit"
-                    title="Tap to view profile & add friend"
-                  >
-                    {msg.senderAvatar ? (
-                      <img src={msg.senderAvatar} alt="Avatar" className="w-5 h-5 rounded-full object-cover border border-rose-400/50" />
-                    ) : (
-                      <div className="w-5 h-5 rounded-full bg-slate-800 flex items-center justify-center text-[10px] font-bold text-sky-400">
-                        {(msg.senderName || msg.senderId).charAt(0)}
-                      </div>
-                    )}
-                    <span
-                      className={`text-[11px] font-mono font-black underline decoration-sky-500/40 underline-offset-2 ${
-                        isMe ? "text-rose-100" : "text-sky-400"
-                      }`}
+              <div className="flex items-center gap-1.5 sm:gap-2 relative">
+                <button
+                  onClick={() => initiateCall(false)}
+                  className="p-2 sm:p-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-sky-500 text-slate-300 hover:text-sky-400 transition-all active:scale-95"
+                  title="Voice Call"
+                >
+                  <Phone size={16} />
+                </button>
+                <button
+                  onClick={() => initiateCall(true)}
+                  className="p-2 sm:p-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-sky-600 text-white font-bold transition-all shadow-md active:scale-95"
+                  title="Video Call"
+                >
+                  <Video size={16} />
+                </button>
+
+                {/* Three Dots Menu Button */}
+                <button
+                  onClick={() => setShowMenu(!showMenu)}
+                  className="p-2 sm:p-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 transition-all"
+                  title="Chat Options"
+                >
+                  <MoreVertical size={16} />
+                </button>
+
+                {/* Dropdown Menu */}
+                {showMenu && (
+                  <div className="absolute right-0 top-12 w-56 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-1.5 z-30 space-y-1">
+                    <button
+                      onClick={() => {
+                        setShowMediaModal(true);
+                        setShowMenu(false);
+                      }}
+                      className="w-full px-3 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-800 rounded-xl flex items-center gap-2.5 text-left"
                     >
-                      {msg.senderName || msg.senderId}
-                    </span>
-                    {!isMe && (
-                      <span className="text-[9px] bg-sky-500/20 text-sky-300 px-1 rounded font-bold">
-                        +Friend
-                      </span>
-                    )}
-                  </div>
+                      <ImageIcon size={15} className="text-sky-400" />
+                      <span>Media, Links and Docs</span>
+                    </button>
 
-                  {/* Tamil Actor Meme */}
-                  {msg.type === "meme" && (
-                    <div className="rounded-xl overflow-hidden bg-black/80 p-2 space-y-1.5 border border-slate-800 w-44 sm:w-56">
-                      <img
-                        src={msg.text}
-                        alt="Tamil Actor"
-                        className="w-full aspect-video rounded-lg object-cover shadow-inner"
+                    <div className="px-3 py-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                      <Palette size={13} />
+                      <span>Chat Theme</span>
+                    </div>
+                    <div className="flex gap-1 px-3 pb-2">
+                      <button
+                        onClick={() => {
+                          setChatTheme("neon");
+                          setShowMenu(false);
+                        }}
+                        className="w-6 h-6 rounded-full bg-rose-500 border border-white/40"
+                        title="Neon Rose"
                       />
-                      {msg.memeMeta && (
-                        <div className="text-center pt-0.5">
-                          <p className="text-xs font-black italic text-slate-100 leading-snug">
-                            "{msg.memeMeta.quote}"
+                      <button
+                        onClick={() => {
+                          setChatTheme("blue");
+                          setShowMenu(false);
+                        }}
+                        className="w-6 h-6 rounded-full bg-sky-500 border border-white/40"
+                        title="Cyber Blue"
+                      />
+                      <button
+                        onClick={() => {
+                          setChatTheme("emerald");
+                          setShowMenu(false);
+                        }}
+                        className="w-6 h-6 rounded-full bg-emerald-500 border border-white/40"
+                        title="Emerald"
+                      />
+                    </div>
+
+                    <div className="border-t border-slate-800 pt-1">
+                      <button
+                        onClick={handleDeleteChatHistory}
+                        className="w-full px-3 py-2 text-xs font-semibold text-red-400 hover:bg-red-950/40 rounded-xl flex items-center gap-2.5 text-left"
+                      >
+                        <Trash2 size={15} />
+                        <span>Clear Chat History</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </header>
+
+            {/* Message Thread */}
+            <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-3">
+              {messages.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-500">
+                  <p className="text-sm font-bold text-white mb-1">Say Hi to {activePartner.name}! 👋</p>
+                  <p className="text-xs text-slate-400">Confidential direct conversation.</p>
+                </div>
+              ) : (
+                messages.map((msg) => {
+                  const isMe = msg.senderId === myFancyNumber;
+                  const timeFormatted = msg.createdAt?.toDate
+                    ? msg.createdAt.toDate().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                    : "...";
+
+                  return (
+                    <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"} w-full`}>
+                      <div
+                        className={`p-2.5 sm:p-3 rounded-2xl max-w-[85%] sm:max-w-[60%] shadow-lg ${
+                          isMe
+                            ? chatTheme === "blue"
+                              ? "bg-gradient-to-r from-sky-600 to-sky-500 text-white rounded-tr-none"
+                              : chatTheme === "emerald"
+                              ? "bg-gradient-to-r from-emerald-600 to-emerald-500 text-white rounded-tr-none"
+                              : "bg-gradient-to-r from-rose-600 to-rose-500 text-white rounded-tr-none shadow-rose-600/30"
+                            : "bg-slate-900 text-slate-200 border border-slate-800 rounded-tl-none shadow-sky-950/40"
+                        }`}
+                      >
+                        {msg.type === "sticker" && (
+                          <div className="w-36 sm:w-44 aspect-square flex items-center justify-center p-1 mb-1 bg-black/40 rounded-xl">
+                            <img src={msg.text} alt="Sticker" className="max-h-full max-w-full object-contain" />
+                          </div>
+                        )}
+
+                        {msg.type === "image" && (
+                          <img src={msg.text} alt="Attachment" className="w-52 rounded-xl object-cover mb-1" />
+                        )}
+
+                        {msg.type === "video" && (
+                          <div className="w-52 rounded-xl overflow-hidden bg-black mb-1">
+                            <video src={msg.text} controls className="w-full max-h-72 rounded-xl" preload="metadata" />
+                          </div>
+                        )}
+
+                        {msg.type === "chunked_video" && msg.mediaId && (
+                          <ChunkedVideoPlayer mediaId={msg.mediaId} mimeType={msg.mimeType || "video/mp4"} />
+                        )}
+
+                        {msg.type === "audio" && (
+                          <div className="flex items-center gap-2 w-48 sm:w-56 py-1">
+                            <Volume2 size={16} className="text-sky-400 flex-shrink-0" />
+                            <audio src={msg.text} controls className="w-full h-8" />
+                          </div>
+                        )}
+
+                        {msg.type === "text" && (
+                          <p className="text-sm font-medium leading-relaxed break-words">{msg.text}</p>
+                        )}
+
+                        <div className="flex items-center justify-end gap-1 mt-1">
+                          <p className={`text-[9px] font-mono font-semibold ${isMe ? "text-rose-100 opacity-90" : "text-slate-400"}`}>
+                            {timeFormatted}
                           </p>
-                          <p className="text-[10px] text-sky-400 font-bold mt-0.5">
-                            {msg.memeMeta.actor} • {msg.memeMeta.movie}
-                          </p>
+                          {isMe && (
+                            <CheckCheck
+                              size={13}
+                              className={msg.read ? "text-sky-300" : "text-rose-200 opacity-70"}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+              <div ref={scrollRef} />
+            </div>
+
+            {/* Video Upload Streaming Indicator */}
+            {uploadProgress !== null && (
+              <div className="mx-3 mb-2 p-2.5 rounded-2xl bg-slate-900 border border-sky-500/40 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="w-3.5 h-3.5 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
+                  <p className="text-xs font-mono font-bold text-sky-300">Streaming Video... {uploadProgress}%</p>
+                </div>
+                <span className="text-[10px] text-slate-400 font-mono">Please wait</span>
+              </div>
+            )}
+
+            {/* Live Audio Recording Inline Waveform */}
+            {isRecording && (
+              <div className="mx-3 mb-2 p-2.5 rounded-2xl bg-gradient-to-r from-rose-600 to-sky-600 text-white flex items-center justify-between shadow-xl animate-pulse">
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-white animate-ping" />
+                  <span className="text-xs font-bold font-mono">Recording Voice Note... {recordSec}s</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => stopRecording(true)}
+                    className="text-xs bg-black/30 hover:bg-black/40 px-2.5 py-1 rounded-xl font-bold"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => stopRecording(false)}
+                    className="text-xs bg-white text-rose-600 px-3 py-1 rounded-xl font-black shadow-md"
+                  >
+                    Send Voice
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* EXACT WHATSAPP STYLE COMPOSER BAR (FROM YOUR PHOTO) */}
+            <div className="p-2 sm:p-3 bg-black border-t border-slate-900 w-full flex-shrink-0 z-20 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+              <div className="max-w-4xl mx-auto flex items-center gap-2">
+                {/* Rounded Pill Container with Sticker, Input, Paperclip and Camera */}
+                <div className="flex-1 flex items-center bg-[#1f2c34] rounded-full px-3 py-1.5 border border-slate-800">
+                  <button
+                    onClick={() => setShowStickers(true)}
+                    className="p-1.5 text-slate-400 hover:text-slate-200 transition-colors"
+                    title="Tamil Memes & Stickers"
+                  >
+                    <Smile size={22} />
+                  </button>
+
+                  <textarea
+                    rows={1}
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        sendMessage(message);
+                      }
+                    }}
+                    placeholder="Message"
+                    className="flex-1 py-1 px-2.5 outline-none text-sm bg-transparent resize-none max-h-24 text-slate-100 placeholder-slate-400 font-medium"
+                  />
+
+                  {/* Attachment Button */}
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-1.5 text-slate-400 hover:text-slate-200 transition-colors"
+                    title="Attach File"
+                  >
+                    <Paperclip size={20} />
+                  </button>
+
+                  {/* Direct Mobile Camera Button */}
+                  <button
+                    onClick={() => cameraInputRef.current?.click()}
+                    className="p-1.5 text-slate-400 hover:text-slate-200 transition-colors"
+                    title="Take Photo with Camera"
+                  >
+                    <Camera size={20} />
+                  </button>
+                </div>
+
+                {/* Hidden File Inputs */}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept="image/*,video/*"
+                  onChange={handleFileUpload}
+                />
+                {/* Direct Native Camera Capture */}
+                <input
+                  type="file"
+                  ref={cameraInputRef}
+                  className="hidden"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handleFileUpload}
+                />
+                <input
+                  type="file"
+                  ref={audioInputRef}
+                  className="hidden"
+                  accept="audio/*"
+                  onChange={handleFileUpload}
+                />
+
+                {/* Right Green Circle Button (Voice Record or Send) */}
+                {message.trim() ? (
+                  <button
+                    onClick={() => sendMessage(message)}
+                    className="w-11 h-11 rounded-full bg-[#00a884] hover:bg-[#06cf9c] flex items-center justify-center text-black font-bold shadow-lg transition-transform active:scale-95 flex-shrink-0"
+                    title="Send Message"
+                  >
+                    <Send size={18} className="ml-0.5" />
+                  </button>
+                ) : (
+                  <button
+                    onClick={isRecording ? () => stopRecording(false) : startRecording}
+                    className={`w-11 h-11 rounded-full ${
+                      isRecording ? "bg-rose-600 animate-pulse" : "bg-[#00a884] hover:bg-[#06cf9c]"
+                    } flex items-center justify-center text-black font-bold shadow-lg transition-transform active:scale-95 flex-shrink-0`}
+                    title="Hold or Tap to Record Audio"
+                  >
+                    <Mic size={20} className={isRecording ? "text-white" : "text-black"} />
+                  </button>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+      </main>
+
+      {/* MEDIA, LINKS AND DOCS MODAL */}
+      <AnimatePresence>
+        {showMediaModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-md bg-slate-900 border border-sky-500/40 rounded-3xl p-5 shadow-2xl relative max-h-[80vh] flex flex-col"
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <ImageIcon size={18} className="text-sky-400" />
+                  <span>Media, Links and Docs</span>
+                </h3>
+                <button onClick={() => setShowMediaModal(false)} className="text-slate-400 hover:text-white">
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-2 grid grid-cols-3 gap-2 mt-2">
+                {mediaMessages.length === 0 ? (
+                  <p className="col-span-3 text-center text-xs text-slate-500 py-8">No photos or videos shared yet.</p>
+                ) : (
+                  mediaMessages.map((m) => (
+                    <div key={m.id} className="aspect-square rounded-xl overflow-hidden bg-black border border-slate-800">
+                      {m.type === "image" ? (
+                        <img src={m.text} alt="Media" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-sky-400">
+                          <Video size={24} />
                         </div>
                       )}
                     </div>
-                  )}
-
-                  {msg.type === "image" && (
-                    <img src={msg.text} alt="Uploaded attachment" className="w-56 rounded-xl object-cover" />
-                  )}
-
-                  {msg.type === "video" && (
-                    <div className="w-56 rounded-xl overflow-hidden bg-black">
-                      <video src={msg.text} controls className="w-full max-h-72 rounded-xl" preload="metadata" />
-                    </div>
-                  )}
-
-                  {msg.type === "chunked_video" && msg.mediaId && (
-                    <ChunkedVideoPlayer mediaId={msg.mediaId} mimeType={msg.mimeType || "video/mp4"} />
-                  )}
-
-                  {msg.type === "audio" && (
-                    <div className="flex items-center gap-2 w-52 sm:w-60 py-1">
-                      <Volume2 size={18} className="text-sky-400 flex-shrink-0" />
-                      <audio src={msg.text} controls className="w-full h-8" />
-                    </div>
-                  )}
-
-                  {msg.type === "text" && (
-                    <p className="text-sm font-medium leading-relaxed break-words">{msg.text}</p>
-                  )}
-
-                  {/* Reactions */}
-                  {msg.reactions && Object.keys(msg.reactions).length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-1.5">
-                      {Object.entries(msg.reactions).map(([uid, emo]) => (
-                        <span
-                          key={uid}
-                          className="text-[10px] bg-slate-950/80 px-1.5 py-0.5 rounded-full border border-sky-500/30 font-mono"
-                        >
-                          {emo}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="flex items-center justify-end gap-1 mt-1">
-                    <p
-                      className={`text-[9px] opacity-60 font-mono font-semibold ${
-                        isMe ? "text-rose-200" : "text-slate-400"
-                      }`}
-                    >
-                      {timeFormatted}
-                    </p>
-                    {isMe && <CheckCheck size={12} className="text-rose-200 opacity-80" />}
-                  </div>
-                </div>
+                  ))
+                )}
               </div>
-            );
-          })}
-          <div ref={scrollRef} />
-        </div>
-
-        {/* Real-Time Uploading Progress Indicator */}
-        {uploadProgress !== null && (
-          <div className="mx-4 mb-2 p-3 rounded-2xl bg-slate-900 border border-sky-500/40 shadow-xl flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <span className="w-4 h-4 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
-              <p className="text-xs font-mono font-bold text-sky-300">
-                Streaming Video... {uploadProgress}%
-              </p>
-            </div>
-            <span className="text-[10px] text-slate-400 font-mono">Do not close app</span>
+            </motion.div>
           </div>
         )}
+      </AnimatePresence>
 
-        {/* Live Audio Recording Bar */}
-        {isRecording && (
-          <div className="mx-3 mb-2 p-2.5 rounded-2xl bg-gradient-to-r from-rose-600 to-sky-600 text-white flex items-center justify-between shadow-xl animate-pulse">
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-white animate-ping" />
-              <span className="text-xs font-bold font-mono">Recording Voice Note... {recordSec}s</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => stopRecording(true)}
-                className="text-xs bg-black/30 hover:bg-black/40 px-2.5 py-1 rounded-xl font-bold"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => stopRecording(false)}
-                className="text-xs bg-white text-rose-600 px-3 py-1 rounded-xl font-black shadow-md"
-              >
-                Send Voice
-              </button>
-            </div>
-          </div>
-        )}
+      {/* COMPACT GIPHY & SEARCHMEMES STICKER DRAWER */}
+      <CompactGiphyStickerDrawer
+        isOpen={showStickers}
+        onClose={() => setShowStickers(false)}
+        onSelect={(sticker) => sendMessage(sticker.url, "sticker")}
+      />
 
-        {/* Composer Bar */}
-        <div className="p-2.5 sm:p-4 bg-slate-950/90 backdrop-blur-xl border-t border-slate-900 relative pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
-          <div className="max-w-4xl mx-auto flex items-end gap-1.5 sm:gap-2 bg-slate-900/90 border border-slate-800 rounded-3xl p-1.5 sm:p-2 focus-within:border-sky-500 transition-colors shadow-inner">
-            <button
-              onClick={() => setShowMemes(true)}
-              className="p-2 sm:p-2.5 text-slate-400 hover:text-rose-400 rounded-2xl transition-colors"
-              title="Tamil Actor Reactions"
-            >
-              <Smile size={22} />
-            </button>
-
-            <textarea
-              rows={1}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  sendMessage(message);
-                }
-              }}
-              placeholder={`Message ${activeChat.name}...`}
-              className="flex-1 py-2 px-1 outline-none text-sm bg-transparent resize-none max-h-32 text-slate-100 placeholder-slate-500 font-medium"
-            />
-
-            <div className="flex items-center gap-0.5">
-              <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                accept="image/*,video/*"
-                onChange={handleFileUpload}
-              />
-              <input
-                type="file"
-                ref={audioInputRef}
-                className="hidden"
-                accept="audio/*"
-                onChange={handleFileUpload}
-              />
-
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="p-2 sm:p-2.5 text-slate-400 hover:text-sky-400 rounded-2xl transition-colors"
-                title="Attach Photo or Video"
-              >
-                <Paperclip size={20} />
-              </button>
-
-              <button
-                onClick={isRecording ? () => stopRecording(false) : startRecording}
-                className={`p-2 sm:p-2.5 rounded-2xl transition-all ${
-                  isRecording ? "bg-rose-600 text-white animate-bounce shadow-lg" : "text-slate-400 hover:text-sky-400"
-                }`}
-                title="Hold or Tap to Record Audio"
-              >
-                <Mic size={20} />
-              </button>
-            </div>
-
-            <button
-              onClick={() => sendMessage(message)}
-              className="p-2.5 sm:p-3 bg-gradient-to-tr from-rose-500 via-sky-500 to-indigo-600 text-white rounded-2xl shadow-lg transition-transform active:scale-95 flex-shrink-0"
-            >
-              <Send size={18} />
-            </button>
-          </div>
-        </div>
-      </main>
-
-      {/* Security Auth & Login Modal */}
+      {/* Security Auth Modal */}
       <AuthSecurityModal
         isOpen={isAuthModalOpen}
         onAuthSuccess={handleAuthSuccess}
       />
 
-      {/* Profile Editor Sheet */}
+      {/* Profile & Delete Account Modal */}
       <ProfileModal
         isOpen={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
@@ -2116,35 +2130,13 @@ export default function ChatPage() {
         myPhone={myPhone}
         onUpdateProfile={handleUpdateProfile}
         onLogout={handleLogout}
+        onDeleteAccount={handleDeleteAccount}
       />
 
-      {/* INSPECT USER PROFILE & SEND FRIEND REQUEST MODAL */}
-      <UserProfileCardModal
-        user={inspectedUser}
-        myId={myFancyNumber}
-        isOpen={!!inspectedUser}
-        onClose={() => setInspectedUser(null)}
-        onRequestFriend={sendConnectionRequest}
-        onOpenDirectChat={selectPrivateChat}
-      />
-
-      {/* Mobile Bottom Sheet for Tamil Stickers */}
-      <MobileMemeBottomSheet
-        isOpen={showMemes}
-        onClose={() => setShowMemes(false)}
-        onSelect={(item) =>
-          sendMessage(item.url, "meme", {
-            quote: item.quote,
-            actor: item.actor,
-            movie: item.movie,
-          })
-        }
-      />
-
-      {/* Fullscreen Video/Audio Call Overlay */}
+      {/* Call HUD Overlay */}
       {callActive && (
         <InlineCallModal
-          channelName={activeChat.id}
+          channelName={activePartner ? [myFancyNumber, activePartner.id].sort().join("_") : "call"}
           isVideo={callIsVideo}
           onEndCall={terminateCall}
           localVideoTrack={localVideoTrack}
