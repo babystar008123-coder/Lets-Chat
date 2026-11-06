@@ -1,20 +1,40 @@
-import './globals.css';
-import { Inter } from 'next/font/google';
+import type { Metadata, Viewport } from "next";
+import "./globals.css";
 
-const inter = Inter({ subsets: ['latin'] });
-
-export const metadata = {
-  title: 'Lets Chat | Real-time Messenger',
-  description: 'Cyber Love & Friends Chat',
+export const metadata: Metadata = {
+  title: "Lets Chat",
+  description: "Real-time Mobile Chat App",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Lets Chat"
+  }
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export const viewport: Viewport = {
+  themeColor: "#000000",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover"
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="en" className="h-[100dvh] w-full overflow-hidden bg-black">
+    <html lang="ta" className="dark bg-black">
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
-      <body className="${inter.className} fixed inset-0 h-[100dvh] w-full overflow-hidden bg-black m-0 p-0 text-slate-100 select-none">
+      <body className="bg-black text-white antialiased h-[100dvh] overflow-hidden overscroll-none select-none">
         {children}
       </body>
     </html>
