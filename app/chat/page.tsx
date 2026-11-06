@@ -3,11 +3,13 @@ import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Send,
+  Smile,
   Video,
   Phone,
   Search,
   Paperclip,
   Heart,
+  Globe,
   UserCheck,
   Mic,
   MicOff,
@@ -17,6 +19,9 @@ import {
   Copy,
   Check,
   MessageCircle,
+  Laugh,
+  Flame,
+  MessageSquareQuote,
   Menu,
   X,
   Volume2,
@@ -34,6 +39,7 @@ import {
   CheckCheck,
   ArrowLeft,
   Users,
+  Trash2,
 } from "lucide-react";
 import { db } from "@/lib/firebase";
 import {
@@ -50,6 +56,7 @@ import {
   where,
   runTransaction,
   getDocs,
+  deleteDoc,
 } from "firebase/firestore";
 
 // ==========================================
@@ -317,75 +324,163 @@ function InlineCallModal({
 }
 
 // ==========================================
-// 4. USER PROFILE CARD MODAL
+// 4. GIPHY TAMIL MEME STICKERS VAULT
 // ==========================================
-function UserProfileCardModal({
-  user,
-  myId,
+interface GiphySticker {
+  id: string;
+  url: string;
+  title: string;
+  actor: string;
+  category: "comedy" | "mass" | "love";
+}
+
+const GIPHY_TAMIL_STICKERS: GiphySticker[] = [
+  // Vadivelu & Comedy from GIPHY
+  {
+    id: "g_vadivelu_1",
+    url: "https://media3.giphy.com/media/v1.Y2lkPTZjMDliOTUyZGNkcGpic3ZuczRkaWxneWF1MmVheWFuZGJiN2RkeTZ4ZnFudm11YyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/YSdvQxlheVHxQw5hEa/200.gif",
+    title: "Vadivelu Laugh",
+    actor: "Vadivelu",
+    category: "comedy",
+  },
+  {
+    id: "g_vadivelu_2",
+    url: "https://media3.giphy.com/media/v1.Y2lkPTZjMDliOTUyNnEzanNlZHJibTYwYjZzazd3NG55OW5zY3g3cmhkeHM4NnVybXU4MyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/ESYT0mj1mUyrjr5kDW/200_d.gif",
+    title: "Vadivelu Shock",
+    actor: "Vadivelu",
+    category: "comedy",
+  },
+  {
+    id: "g_comedy_3",
+    url: "https://media4.giphy.com/media/v1.Y2lkPTZjMDliOTUyd2I5Mjk3OTl4eHA1Z3hpbjBsejRyMHdoYXkzYXNucTk5aTNpODk3MCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/YuWeSpstyR92U5cP0y/200w.gif",
+    title: "Goundamani Sarcasm",
+    actor: "Goundamani",
+    category: "comedy",
+  },
+  // Mass & Punch
+  {
+    id: "g_mass_1",
+    url: "https://media3.giphy.com/media/v1.Y2lkPTZjMDliOTUycWc4eW8wMGt5ZWN3dnZ1MWFvZHBsNW92cnNkN3cybnN6aXh3emxucyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/3S7dHcfGYlxvqjtHqn/200w.gif",
+    title: "Rajini Mass",
+    actor: "Superstar Rajini",
+    category: "mass",
+  },
+  {
+    id: "g_mass_2",
+    url: "https://media2.giphy.com/avatars/whistleadi/pnrBneA9iDRq.png",
+    title: "Vijay Master",
+    actor: "Thalapathy Vijay",
+    category: "mass",
+  },
+  // Love & Emotion
+  {
+    id: "g_love_1",
+    url: "https://media3.giphy.com/media/v1.Y2lkPTZjMDliOTUyaXE3MGk2dDAybnpmaHpheGI0a3Ezdzlpb3cwd2diYTVvNTl1OWJrcSZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/ddxgdaMGp1GVZTOHS6/giphy.gif",
+    title: "Tamizh Love",
+    actor: "Love Mood",
+    category: "love",
+  },
+  {
+    id: "g_love_2",
+    url: "https://media2.giphy.com/avatars/hikeapp/0EtZU39tXRqb.gif",
+    title: "Tamil Romance",
+    actor: "Romantic Vibes",
+    category: "love",
+  },
+];
+
+function GiphyStickerSheet({
   isOpen,
   onClose,
-  onOpenDirectChat,
+  onSelect,
 }: {
-  user: { id: string; name: string; avatar: string } | null;
-  myId: string;
   isOpen: boolean;
   onClose: () => void;
-  onOpenDirectChat: (targetUser: { id: string; name: string; avatar: string }) => void;
+  onSelect: (item: GiphySticker) => void;
 }) {
-  if (!isOpen || !user) return null;
-  const isMe = user.id === myId;
+  const [tab, setTab] = useState<"comedy" | "mass" | "love">("comedy");
+  const filtered = GIPHY_TAMIL_STICKERS.filter((s) => s.category === tab);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
-      <motion.div
-        initial={{ scale: 0.92, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.92, opacity: 0 }}
-        className="w-full max-w-sm bg-slate-950 border border-sky-500/50 rounded-3xl p-6 shadow-[0_0_50px_rgba(56,189,248,0.25)] relative text-center"
-      >
-        <button onClick={onClose} className="absolute right-4 top-4 text-slate-400 hover:text-white">
-          <X size={18} />
-        </button>
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-black/80 backdrop-blur-md z-50"
+          />
 
-        <div className="w-24 h-24 rounded-full mx-auto overflow-hidden border-2 border-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.5)] mb-3 bg-slate-900">
-          {user.avatar ? (
-            <img src={user.avatar} alt="Profile" className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-slate-500 text-3xl font-bold">
-              {user.name.charAt(0)}
-            </div>
-          )}
-        </div>
-
-        <h3 className="text-lg font-black text-white">{user.name}</h3>
-        <p className="text-xs font-mono font-bold text-sky-400 tracking-wider mb-2">ID: {user.id}</p>
-
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold mb-6">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-          <span>Active User</span>
-        </div>
-
-        {!isMe ? (
-          <button
-            onClick={() => {
-              onOpenDirectChat(user);
-              onClose();
-            }}
-            className="w-full py-3 bg-gradient-to-r from-rose-600 to-sky-600 hover:from-rose-500 hover:to-sky-500 text-white font-black rounded-xl text-xs shadow-lg shadow-rose-600/30 transition-transform active:scale-95 flex items-center justify-center gap-2"
+          <motion.div
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", damping: 25, stiffness: 280 }}
+            className="fixed bottom-0 inset-x-0 max-h-[75vh] bg-slate-950 border-t border-sky-500/30 rounded-t-[32px] shadow-2xl z-50 flex flex-col overflow-hidden pb-[calc(1rem+env(safe-area-inset-bottom))]"
           >
-            <MessageCircle size={16} />
-            <span>Open Direct Chat</span>
-          </button>
-        ) : (
-          <p className="text-xs text-slate-500 font-medium">This is your profile.</p>
-        )}
-      </motion.div>
-    </div>
+            <div className="w-12 h-1.5 bg-slate-800 rounded-full mx-auto my-3" />
+
+            <div className="px-4 pb-3 border-b border-slate-900 flex items-center justify-between">
+              <div className="flex gap-1.5 p-1 bg-slate-900 rounded-2xl border border-slate-800">
+                {(
+                  [
+                    { key: "comedy", label: "😂 Comedy" },
+                    { key: "mass", label: "🔥 Mass" },
+                    { key: "love", label: "❤️ Love" },
+                  ] as const
+                ).map((t) => (
+                  <button
+                    key={t.key}
+                    onClick={() => setTab(t.key)}
+                    className={`py-1.5 px-3 rounded-xl text-xs font-bold transition-all ${
+                      tab === t.key
+                        ? "bg-gradient-to-r from-rose-500 to-sky-500 text-white shadow-md"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+
+              <button onClick={onClose} className="p-2 rounded-xl bg-slate-900 text-slate-400 hover:text-white">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto max-h-[55vh]">
+              {filtered.map((item) => (
+                <div
+                  key={item.id}
+                  onClick={() => {
+                    onSelect(item);
+                    onClose();
+                  }}
+                  className="cursor-pointer group flex flex-col items-center justify-center p-2.5 rounded-2xl bg-slate-900/60 hover:bg-slate-900 border border-slate-800 hover:border-sky-500/60 transition-all shadow-sm active:scale-95"
+                >
+                  <div className="w-full aspect-square flex items-center justify-center overflow-hidden mb-1">
+                    <img
+                      src={item.url}
+                      alt={item.title}
+                      className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform"
+                    />
+                  </div>
+                  <p className="text-[11px] font-bold text-slate-200 truncate">{item.title}</p>
+                  <p className="text-[9px] text-sky-400 font-mono">{item.actor}</p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
   );
 }
 
 // ==========================================
-// 5. PROFILE EDITOR MODAL
+// 5. PROFILE & DELETE ACCOUNT MODAL
 // ==========================================
 function ProfileModal({
   isOpen,
@@ -396,6 +491,7 @@ function ProfileModal({
   myPhone,
   onUpdateProfile,
   onLogout,
+  onDeleteAccount,
 }: {
   isOpen: boolean;
   onClose: () => void;
@@ -405,6 +501,7 @@ function ProfileModal({
   myPhone: string;
   onUpdateProfile: (name: string, avatar: string) => void;
   onLogout: () => void;
+  onDeleteAccount: () => void;
 }) {
   const [name, setName] = useState(myName);
   const [avatar, setAvatar] = useState(myAvatar);
@@ -450,7 +547,7 @@ function ProfileModal({
             <div className="flex flex-col items-center mb-5">
               <div
                 onClick={() => avatarFileRef.current?.click()}
-                className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.4)] cursor-pointer group bg-black"
+                className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-rose-500 shadow-md cursor-pointer group bg-black"
               >
                 {avatar ? (
                   <img src={avatar} alt="Profile" className="w-full h-full object-cover" />
@@ -473,7 +570,7 @@ function ProfileModal({
               <p className="text-[10px] text-slate-400 mt-2 font-medium">Tap photo to change avatar</p>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div>
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
                   Display Name
@@ -489,17 +586,25 @@ function ProfileModal({
 
               <button
                 onClick={save}
-                className="w-full py-3 bg-gradient-to-r from-rose-600 to-sky-600 hover:from-rose-500 hover:to-sky-500 text-white font-bold rounded-xl text-xs shadow-lg shadow-rose-600/30 transition-transform active:scale-95"
+                className="w-full py-2.5 bg-gradient-to-r from-rose-600 to-sky-600 hover:from-rose-500 hover:to-sky-500 text-white font-bold rounded-xl text-xs shadow-md transition-transform active:scale-95"
               >
                 Save Profile
               </button>
 
               <button
                 onClick={onLogout}
-                className="w-full py-2.5 bg-slate-950 border border-rose-500/40 hover:bg-rose-500/10 text-rose-400 font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5"
+                className="w-full py-2 bg-slate-950 border border-slate-800 hover:bg-slate-800 text-slate-300 font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5"
               >
                 <LogOut size={14} />
-                <span>Logout / Switch Account</span>
+                <span>Logout Session</span>
+              </button>
+
+              <button
+                onClick={onDeleteAccount}
+                className="w-full py-2 bg-red-950/30 border border-red-600/50 hover:bg-red-900/40 text-red-400 font-bold rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5"
+              >
+                <Trash2 size={14} />
+                <span>Delete Account Permanently</span>
               </button>
             </div>
           </motion.div>
@@ -621,7 +726,7 @@ function AuthSecurityModal({
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="w-full max-w-sm bg-slate-900 border border-sky-500/40 rounded-3xl p-6 shadow-[0_0_50px_rgba(56,189,248,0.25)] relative"
+        className="w-full max-w-sm bg-slate-900 border border-sky-500/40 rounded-3xl p-6 shadow-2xl relative"
       >
         <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-rose-500 via-sky-500 to-indigo-600 flex items-center justify-center mx-auto text-white shadow-lg mb-4">
           <Lock size={26} />
@@ -710,7 +815,7 @@ function AuthSecurityModal({
 }
 
 // ==========================================
-// 7. CHUNKED VIDEO PLAYER FOR LARGE VIDEOS
+// 7. CHUNKED VIDEO PLAYER
 // ==========================================
 function ChunkedVideoPlayer({ mediaId, mimeType }: { mediaId: string; mimeType: string }) {
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
@@ -759,7 +864,7 @@ function ChunkedVideoPlayer({ mediaId, mimeType }: { mediaId: string; mimeType: 
 }
 
 // ==========================================
-// 8. MASTER USER DIRECTORY & CHAT WORKSPACE
+// 8. MASTER CHAT WORKSPACE
 // ==========================================
 interface UserItem {
   id: string;
@@ -774,7 +879,7 @@ interface Message {
   senderId: string;
   senderName?: string;
   senderAvatar?: string;
-  type: "text" | "meme" | "image" | "video" | "chunked_video" | "audio";
+  type: "text" | "sticker" | "image" | "video" | "chunked_video" | "audio";
   mediaId?: string;
   mimeType?: string;
   read?: boolean;
@@ -789,11 +894,8 @@ export default function ChatPage() {
   const [myAvatar, setMyAvatar] = useState("");
   const [myPhone, setMyPhone] = useState("");
 
-  // Directory of all registered users
   const [allUsers, setAllUsers] = useState<UserItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-
-  // Selected private chat partner
   const [activePartner, setActivePartner] = useState<UserItem | null>(null);
 
   const [callActive, setCallActive] = useState(false);
@@ -801,8 +903,8 @@ export default function ChatPage() {
   const [copied, setCopied] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [showStickers, setShowStickers] = useState(false);
 
-  const [inspectedUser, setInspectedUser] = useState<{ id: string; name: string; avatar: string } | null>(null);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [activeToast, setActiveToast] = useState<{ sender: string; text: string; userObj: UserItem } | null>(null);
 
@@ -846,7 +948,7 @@ export default function ChatPage() {
     }
   }, []);
 
-  // Fetch all registered users in real-time
+  // Fetch all registered users
   useEffect(() => {
     if (!myFancyNumber) return;
 
@@ -870,7 +972,7 @@ export default function ChatPage() {
     return () => unsub();
   }, [myFancyNumber]);
 
-  // Real-time messages for active 1-on-1 private chat
+  // Messages listener for selected partner
   useEffect(() => {
     if (!myFancyNumber || !activePartner) {
       setMessages([]);
@@ -897,7 +999,9 @@ export default function ChatPage() {
       const lastMsg = fetched[fetched.length - 1];
       if (lastMsg && lastMsg.senderId !== myFancyNumber) {
         const previewText =
-          lastMsg.type === "video" || lastMsg.type === "chunked_video"
+          lastMsg.type === "sticker"
+            ? "Sent a Tamil Sticker"
+            : lastMsg.type === "video" || lastMsg.type === "chunked_video"
             ? "Sent a Video"
             : lastMsg.type === "audio"
             ? "Sent a Voice Note"
@@ -941,6 +1045,63 @@ export default function ChatPage() {
     setIsAuthModalOpen(true);
   };
 
+  // DELETE CHAT HISTORY OPTION
+  const handleDeleteChatHistory = async () => {
+    if (!activePartner || !myFancyNumber) return;
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete all chat history with ${activePartner.name}? This cannot be undone.`
+    );
+    if (!confirmDelete) return;
+
+    try {
+      const roomId = [myFancyNumber, activePartner.id].sort().join("_");
+      const messagesRef = collection(db, "private_chats", roomId, "messages");
+      const snap = await getDocs(messagesRef);
+
+      const deletePromises = snap.docs.map((docSnap) => deleteDoc(docSnap.ref));
+      await Promise.all(deletePromises);
+      alert("Chat history cleared successfully.");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to clear chat history.");
+    }
+  };
+
+  // DELETE MESSAGE OPTION
+  const handleDeleteMessage = async (msgId: string) => {
+    if (!activePartner || !myFancyNumber) return;
+    try {
+      const roomId = [myFancyNumber, activePartner.id].sort().join("_");
+      await deleteDoc(doc(db, "private_chats", roomId, "messages", msgId));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // DELETE USER ACCOUNT PERMANENTLY
+  const handleDeleteAccount = async () => {
+    const confirmDelete = window.confirm(
+      "WARNING: This will permanently delete your user profile and registered ID. Continue?"
+    );
+    if (!confirmDelete) return;
+
+    try {
+      if (myFancyNumber) {
+        await deleteDoc(doc(db, "users", myFancyNumber));
+      }
+      if (myPhone) {
+        await deleteDoc(doc(db, "phone_accounts", myPhone));
+      }
+      localStorage.clear();
+      setIsProfileOpen(false);
+      setIsAuthModalOpen(true);
+      alert("Your account has been deleted permanently.");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to delete account.");
+    }
+  };
+
   const handleUpdateProfile = (newName: string, newAvatar: string) => {
     setMyName(newName);
     setMyAvatar(newAvatar);
@@ -957,7 +1118,7 @@ export default function ChatPage() {
 
   const sendMessage = async (
     text: string,
-    type: "text" | "image" | "video" | "chunked_video" | "audio" = "text",
+    type: "text" | "sticker" | "image" | "video" | "chunked_video" | "audio" = "text",
     extraPayload?: Record<string, any>
   ) => {
     if (!text.trim() && type === "text") return;
@@ -1108,7 +1269,7 @@ export default function ChatPage() {
 
   return (
     <div className="fixed inset-0 h-[100dvh] w-full overflow-hidden bg-black text-slate-100 font-sans select-none flex flex-row">
-      {/* Floating In-App Toast */}
+      {/* Floating In-App Notification */}
       <AnimatePresence>
         {activeToast && (
           <motion.div
@@ -1135,23 +1296,22 @@ export default function ChatPage() {
         )}
       </AnimatePresence>
 
-      {/* Background Glows */}
+      {/* Cyber Background Glows */}
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-sky-500/10 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-rose-500/15 rounded-full blur-[140px] pointer-events-none" />
 
-      {/* USER DIRECTORY SIDEBAR (FULL SCREEN ON MOBILE WHEN NO CHAT IS OPEN) */}
+      {/* USER DIRECTORY (HOME SCREEN ON MOBILE) */}
       <aside
         className={`w-full md:w-80 h-full flex flex-col bg-slate-950 border-r border-slate-900 z-30 transition-all ${
           activePartner ? "hidden md:flex" : "flex"
         }`}
       >
-        {/* Profile Card Header */}
         <div className="p-4 border-b border-slate-900 bg-black/60 flex-shrink-0">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2.5">
               <div
                 onClick={() => setIsProfileOpen(true)}
-                className="relative w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-500 via-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-[0_0_15px_rgba(244,63,94,0.5)] cursor-pointer overflow-hidden border border-rose-400/40"
+                className="relative w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-500 via-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-md cursor-pointer overflow-hidden border border-rose-400/40"
               >
                 {myAvatar ? (
                   <img src={myAvatar} alt="Profile" className="w-full h-full object-cover" />
@@ -1195,7 +1355,7 @@ export default function ChatPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search user by name or ID..."
-              className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-slate-900 border border-slate-800 text-slate-200 placeholder-slate-500 outline-none focus:border-sky-500 transition-all font-mono"
+              className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-slate-900 border border-slate-800 text-slate-200 placeholder-slate-500 outline-none focus:border-sky-500 font-mono"
             />
             <Search size={14} className="absolute left-3 top-2.5 text-slate-500" />
           </div>
@@ -1210,7 +1370,7 @@ export default function ChatPage() {
 
           {filteredUsers.length === 0 ? (
             <div className="p-8 text-center text-slate-500 text-xs font-medium">
-              No users registered yet.
+              No other users found.
             </div>
           ) : (
             filteredUsers.map((u) => {
@@ -1221,7 +1381,7 @@ export default function ChatPage() {
                   onClick={() => setActivePartner(u)}
                   className={`p-3 rounded-2xl cursor-pointer transition-all flex items-center justify-between border ${
                     isSelected
-                      ? "bg-slate-900 border-sky-500/60 shadow-[0_0_15px_rgba(56,189,248,0.2)]"
+                      ? "bg-slate-900 border-sky-500/60 shadow-md"
                       : "bg-slate-950 hover:bg-slate-900/60 border-slate-900"
                   }`}
                 >
@@ -1267,7 +1427,7 @@ export default function ChatPage() {
           </div>
         ) : (
           <>
-            {/* Header with Back button for mobile */}
+            {/* Header with Back & Delete Chat buttons */}
             <header className="h-14 sm:h-16 flex items-center justify-between px-3 sm:px-6 bg-slate-950 border-b border-slate-900 z-10 flex-shrink-0">
               <div className="flex items-center gap-2.5 sm:gap-3">
                 <button
@@ -1290,7 +1450,14 @@ export default function ChatPage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <button
+                  onClick={handleDeleteChatHistory}
+                  className="p-2 sm:p-2.5 rounded-xl bg-slate-900 hover:bg-red-950/40 text-slate-400 hover:text-red-400 border border-slate-800 transition-all"
+                  title="Clear Chat History"
+                >
+                  <Trash2 size={16} />
+                </button>
                 <button
                   onClick={() => initiateCall(false)}
                   className="p-2 sm:p-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-sky-500 text-slate-300 hover:text-sky-400 transition-all active:scale-95"
@@ -1300,7 +1467,7 @@ export default function ChatPage() {
                 </button>
                 <button
                   onClick={() => initiateCall(true)}
-                  className="p-2 sm:p-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-sky-600 text-white font-bold transition-all shadow-[0_0_15px_rgba(244,63,94,0.4)] active:scale-95"
+                  className="p-2 sm:p-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-sky-600 text-white font-bold transition-all shadow-md active:scale-95"
                   title="Video Call"
                 >
                   <Video size={16} />
@@ -1312,7 +1479,7 @@ export default function ChatPage() {
             <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-3">
               {messages.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-500">
-                  <p className="text-sm font-bold text-white mb-1">Say Hi to {activePartner.name}! 👋</p>
+                  <p className="text-sm font-bold text-white mb-1">Start chatting with {activePartner.name}!</p>
                   <p className="text-xs text-slate-400">Direct, private, end-to-end conversation.</p>
                 </div>
               ) : (
@@ -1323,14 +1490,21 @@ export default function ChatPage() {
                     : "...";
 
                   return (
-                    <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"} w-full`}>
+                    <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"} w-full group relative`}>
                       <div
-                        className={`p-3 rounded-2xl max-w-[85%] sm:max-w-[60%] shadow-lg ${
+                        className={`p-3 rounded-2xl max-w-[85%] sm:max-w-[60%] shadow-lg relative ${
                           isMe
                             ? "bg-gradient-to-r from-rose-600 to-rose-500 text-white rounded-tr-none shadow-rose-600/30"
                             : "bg-slate-900 text-slate-200 border border-slate-800 rounded-tl-none shadow-sky-950/40"
                         }`}
                       >
+                        {/* GIPHY Tamil Meme Sticker Embed */}
+                        {msg.type === "sticker" && (
+                          <div className="w-48 aspect-square flex items-center justify-center p-1 mb-1">
+                            <img src={msg.text} alt="Tamil Sticker" className="max-h-full max-w-full object-contain" />
+                          </div>
+                        )}
+
                         {msg.type === "image" && (
                           <img src={msg.text} alt="Attachment" className="w-56 rounded-xl object-cover mb-1" />
                         )}
@@ -1356,12 +1530,17 @@ export default function ChatPage() {
                           <p className="text-sm font-medium leading-relaxed break-words">{msg.text}</p>
                         )}
 
-                        <div className="flex items-center justify-end gap-1 mt-1">
-                          <p
-                            className={`text-[9px] font-mono font-semibold ${
-                              isMe ? "text-rose-200" : "text-slate-400"
-                            }`}
-                          >
+                        <div className="flex items-center justify-end gap-1.5 mt-1">
+                          {isMe && (
+                            <button
+                              onClick={() => handleDeleteMessage(msg.id)}
+                              className="opacity-0 group-hover:opacity-100 text-rose-200 hover:text-white transition-opacity mr-1"
+                              title="Delete message"
+                            >
+                              <Trash2 size={11} />
+                            </button>
+                          )}
+                          <p className={`text-[9px] font-mono font-semibold ${isMe ? "text-rose-200" : "text-slate-400"}`}>
                             {timeFormatted}
                           </p>
                           {isMe && (
@@ -1414,9 +1593,17 @@ export default function ChatPage() {
               </div>
             )}
 
-            {/* Message Input Box */}
+            {/* Message Input Composer */}
             <div className="p-2 sm:p-3 bg-slate-950 border-t border-slate-900 w-full flex-shrink-0 z-20 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
               <div className="max-w-4xl mx-auto flex items-end gap-1.5 sm:gap-2 bg-slate-900 border border-slate-800 rounded-2xl p-1.5 focus-within:border-sky-500 transition-colors">
+                <button
+                  onClick={() => setShowStickers(true)}
+                  className="p-2 text-slate-400 hover:text-rose-400 rounded-xl transition-colors"
+                  title="GIPHY Tamil Stickers"
+                >
+                  <Smile size={20} />
+                </button>
+
                 <textarea
                   rows={1}
                   value={message}
@@ -1478,13 +1665,20 @@ export default function ChatPage() {
         )}
       </main>
 
+      {/* GIPHY Tamil Stickers Drawer */}
+      <GiphyStickerSheet
+        isOpen={showStickers}
+        onClose={() => setShowStickers(false)}
+        onSelect={(sticker) => sendMessage(sticker.url, "sticker")}
+      />
+
       {/* Security Auth Modal */}
       <AuthSecurityModal
         isOpen={isAuthModalOpen}
         onAuthSuccess={handleAuthSuccess}
       />
 
-      {/* Profile Editor Sheet */}
+      {/* Profile & Delete Account Modal */}
       <ProfileModal
         isOpen={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
@@ -1494,15 +1688,7 @@ export default function ChatPage() {
         myPhone={myPhone}
         onUpdateProfile={handleUpdateProfile}
         onLogout={handleLogout}
-      />
-
-      {/* User Profile Inspection Modal */}
-      <UserProfileCardModal
-        user={inspectedUser}
-        myId={myFancyNumber}
-        isOpen={!!inspectedUser}
-        onClose={() => setInspectedUser(null)}
-        onOpenDirectChat={(u) => setActivePartner(u)}
+        onDeleteAccount={handleDeleteAccount}
       />
 
       {/* Call HUD Overlay */}
