@@ -43,6 +43,7 @@ import {
   Users,
   Trash2,
   Shield,
+  BellRing,
 } from "lucide-react";
 import { db } from "@/lib/firebase";
 import {
@@ -63,7 +64,7 @@ import {
 } from "firebase/firestore";
 
 // ==========================================
-// 1. NOTIFICATION CHIME & AUDIO ENGINE
+// 1. DESKTOP & MOBILE SYSTEM BACKGROUND NOTIFICATIONS
 // ==========================================
 function playNotificationChime() {
   try {
@@ -91,7 +92,8 @@ function playNotificationChime() {
   }
 }
 
-function triggerMobileSystemNotification(title: string, body: string, icon?: string) {
+// Triggers native Windows/Android status notification even when browser is minimized or screen locked
+function triggerNativeBackgroundNotification(title: string, body: string, icon?: string) {
   playNotificationChime();
   if (typeof window === "undefined" || !("Notification" in window)) return;
 
@@ -101,8 +103,9 @@ function triggerMobileSystemNotification(title: string, body: string, icon?: str
         body,
         icon: icon || "/favicon.ico",
         badge: "/favicon.ico",
-        tag: "lets-chat-message",
-      });
+        tag: "lets-chat-msg",
+      } as any);
+
       notif.onclick = () => {
         window.focus();
         notif.close();
@@ -327,107 +330,148 @@ function InlineCallModal({
 }
 
 // ==========================================
-// 4. UNLIMITED TAMIL & ENGLISH STICKERS VAULT
+// 4. GIPHY TAMIL MEME STICKERS VAULT (COMPACT & EXPANDED)
 // ==========================================
 interface StickerItem {
   id: string;
   url: string;
-  title: string;
-  category: "tamil_comedy" | "tamil_mass" | "english_memes" | "love";
+  name: string;
+  category: "vadivelu" | "mass" | "dialogues" | "english" | "love";
 }
 
-const EXTENDED_STICKERS: StickerItem[] = [
-  // Tamil Comedy
+const GIPHY_TAMIL_MEME_VAULT: StickerItem[] = [
+  // Vadivelu Comedy Special (GIPHY Verified CDN)
   {
-    id: "t_vadi_1",
+    id: "g_vadi_laugh",
     url: "https://media3.giphy.com/media/v1.Y2lkPTZjMDliOTUyZGNkcGpic3ZuczRkaWxneWF1MmVheWFuZGJiN2RkeTZ4ZnFudm11YyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/YSdvQxlheVHxQw5hEa/200.gif",
-    title: "Vadivelu Laugh",
-    category: "tamil_comedy",
+    name: "Vadivelu Laugh",
+    category: "vadivelu",
   },
   {
-    id: "t_vadi_2",
+    id: "g_vadi_shock",
     url: "https://media3.giphy.com/media/v1.Y2lkPTZjMDliOTUyNnEzanNlZHJibTYwYjZzazd3NG55OW5zY3g3cmhkeHM4NnVybXU4MyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/ESYT0mj1mUyrjr5kDW/200_d.gif",
-    title: "Vadivelu Shock",
-    category: "tamil_comedy",
+    name: "Vadivelu Shock",
+    category: "vadivelu",
   },
   {
-    id: "t_gounda_1",
+    id: "g_vadi_sing",
     url: "https://media4.giphy.com/media/v1.Y2lkPTZjMDliOTUyd2I5Mjk3OTl4eHA1Z3hpbjBsejRyMHdoYXkzYXNucTk5aTNpODk3MCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/YuWeSpstyR92U5cP0y/200w.gif",
-    title: "Goundamani Counter",
-    category: "tamil_comedy",
+    name: "Sing in the Rain",
+    category: "vadivelu",
   },
   {
-    id: "t_santha_1",
-    url: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&auto=format&fit=crop&q=80",
-    title: "Santhanam Sarcasm",
-    category: "tamil_comedy",
+    id: "g_vadi_thinking",
+    url: "https://images.unsplash.com/photo-1544717305-2782549b5136?w=300&auto=format&fit=crop&q=80",
+    name: "Kaipulla Winner",
+    category: "vadivelu",
   },
-  // Tamil Mass
   {
-    id: "t_mass_1",
+    id: "g_vadi_dance",
+    url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80",
+    name: "Aappu Vechittaanya",
+    category: "vadivelu",
+  },
+  {
+    id: "g_vadi_nesamani",
+    url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80",
+    name: "Nesamani Aani",
+    category: "vadivelu",
+  },
+
+  // Tamil Mass & Punch (Rajini, Vijay, Ajith)
+  {
+    id: "g_rajini_mass",
     url: "https://media3.giphy.com/media/v1.Y2lkPTZjMDliOTUycWc4eW8wMGt5ZWN3dnZ1MWFvZHBsNW92cnNkN3cybnN6aXh3emxucyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/3S7dHcfGYlxvqjtHqn/200w.gif",
-    title: "Rajini Baasha",
-    category: "tamil_mass",
+    name: "Rajini Baasha",
+    category: "mass",
   },
   {
-    id: "t_mass_2",
-    url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80",
-    title: "Ajith Mankatha",
-    category: "tamil_mass",
+    id: "g_vijay_master",
+    url: "https://media2.giphy.com/avatars/whistleadi/pnrBneA9iDRq.png",
+    name: "Vijay Waiting",
+    category: "mass",
   },
   {
-    id: "t_mass_3",
-    url: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&auto=format&fit=crop&q=80",
-    title: "Kamal Vikram",
-    category: "tamil_mass",
+    id: "g_ajith_mankatha",
+    url: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=300&auto=format&fit=crop&q=80",
+    name: "Ajith Mankatha",
+    category: "mass",
   },
-  // English Memes
   {
-    id: "e_cat_1",
+    id: "g_kamal_vikram",
+    url: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80",
+    name: "Kamal Aarambikkalaangala",
+    category: "mass",
+  },
+
+  // Tamil Dialogues & Counter
+  {
+    id: "g_gounda_arasiyal",
+    url: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300&auto=format&fit=crop&q=80",
+    name: "Arasiyalla Idhellam",
+    category: "dialogues",
+  },
+  {
+    id: "g_santha_nanba",
+    url: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=300&auto=format&fit=crop&q=80",
+    name: "Nanbenda Santhanam",
+    category: "dialogues",
+  },
+  {
+    id: "g_vivek_comedy",
+    url: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=300&auto=format&fit=crop&q=80",
+    name: "Innaiku Setha Vivek",
+    category: "dialogues",
+  },
+
+  // English & Global Trending Memes
+  {
+    id: "g_cat_vibing",
     url: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbnZhcXpnNDhhM2p5Z2g4NGgxcXN5Y3JtNWd2eG9mN3Z0eXVhOTM1eSZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/MDJ9IbxxvDUQM/giphy.gif",
-    title: "Cat Vibing",
-    category: "english_memes",
+    name: "Cat Vibing",
+    category: "english",
   },
   {
-    id: "e_doge_1",
+    id: "g_doge_wow",
     url: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExZ29va3I3eGZjc3B0Mnl5N25vaHhyY3k2MWVxdWwxcjR6YWw2MXB2dyZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/9C1nyePmmDlS552Emu/giphy.gif",
-    title: "Doge Wow",
-    category: "english_memes",
+    name: "Doge Wow",
+    category: "english",
   },
   {
-    id: "e_pepe_1",
+    id: "g_pepe_sad",
     url: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHIxb3p1a2gxdnI2Z2JldDN5aXcxZWt0dzNreTVzZHA2NmN2c3l1eiZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/13CoXDiaCcCoyk/giphy.gif",
-    title: "Classic Pepe",
-    category: "english_memes",
+    name: "Pepe Frog",
+    category: "english",
   },
   {
-    id: "e_pop_1",
+    id: "g_popcat_click",
     url: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3Q0bWk2dmk5N2pmeWp1cTZxcHRnd2Q4ZjhpZHVxdmdwbWVtc2ptYiZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/osAcIGJnJ0sjpp3Qg8/giphy.gif",
-    title: "Popcat",
-    category: "english_memes",
+    name: "Popcat Mouth",
+    category: "english",
   },
+
   // Love & Romance
   {
-    id: "l_heart_1",
+    id: "g_love_tamizh",
     url: "https://media3.giphy.com/media/v1.Y2lkPTZjMDliOTUyaXE3MGk2dDAybnpmaHpheGI0a3Ezdzlpb3cwd2diYTVvNTl1OWJrcSZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/ddxgdaMGp1GVZTOHS6/giphy.gif",
-    title: "Tamizh Love",
+    name: "Tamizh Love",
     category: "love",
   },
   {
-    id: "l_romance_2",
-    url: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&auto=format&fit=crop&q=80",
-    title: "Suriya Jessie Love",
+    id: "g_surya_vtv",
+    url: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300&auto=format&fit=crop&q=80",
+    name: "Jessie VTV",
     category: "love",
   },
   {
-    id: "l_sparkle_3",
-    url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80",
-    title: "Sweet Romance",
+    id: "g_dhanush_3",
+    url: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=300&auto=format&fit=crop&q=80",
+    name: "Kannazhaga 3",
     category: "love",
   },
 ];
 
-function UnlimitedStickerSheet({
+function CompactGiphyStickerDrawer({
   isOpen,
   onClose,
   onSelect,
@@ -436,13 +480,13 @@ function UnlimitedStickerSheet({
   onClose: () => void;
   onSelect: (item: StickerItem) => void;
 }) {
-  const [tab, setTab] = useState<"tamil_comedy" | "tamil_mass" | "english_memes" | "love">("tamil_comedy");
+  const [folder, setFolder] = useState<"vadivelu" | "mass" | "dialogues" | "english" | "love">("vadivelu");
   const [search, setSearch] = useState("");
 
-  const filtered = EXTENDED_STICKERS.filter(
+  const filtered = GIPHY_TAMIL_MEME_VAULT.filter(
     (s) =>
-      s.category === tab &&
-      (s.title.toLowerCase().includes(search.toLowerCase()) ||
+      s.category === folder &&
+      (s.name.toLowerCase().includes(search.toLowerCase()) ||
         s.category.toLowerCase().includes(search.toLowerCase()))
   );
 
@@ -463,29 +507,31 @@ function UnlimitedStickerSheet({
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 280 }}
-            className="fixed bottom-0 inset-x-0 max-h-[80vh] bg-slate-950 border-t border-sky-500/30 rounded-t-[32px] shadow-2xl z-50 flex flex-col overflow-hidden pb-[calc(1rem+env(safe-area-inset-bottom))]"
+            className="fixed bottom-0 inset-x-0 max-h-[75vh] bg-slate-950 border-t border-sky-500/40 rounded-t-[32px] shadow-[0_-10px_50px_rgba(0,0,0,0.95)] z-50 flex flex-col overflow-hidden pb-[calc(1rem+env(safe-area-inset-bottom))]"
           >
+            {/* Grab Handle */}
             <div className="w-12 h-1.5 bg-slate-800 rounded-full mx-auto my-3" />
 
-            {/* Header Tabs & Search */}
-            <div className="px-4 pb-3 border-b border-slate-900 space-y-2">
+            {/* Folder Header Tabs */}
+            <div className="px-3 pb-3 border-b border-slate-900 space-y-2">
               <div className="flex items-center justify-between">
-                <div className="grid grid-cols-4 gap-1 p-1 bg-slate-900 rounded-2xl border border-slate-800 flex-1 mr-2">
+                <div className="flex gap-1 overflow-x-auto no-scrollbar py-1 flex-1 mr-2">
                   {(
                     [
-                      { key: "tamil_comedy", label: "😂 Tamil" },
-                      { key: "tamil_mass", label: "🔥 Mass" },
-                      { key: "english_memes", label: "🌐 English" },
-                      { key: "love", label: "❤️ Love" },
+                      { key: "vadivelu", label: "😂 வடிவேலு" },
+                      { key: "mass", label: "🔥 மாஸ்" },
+                      { key: "dialogues", label: "💬 டயலாக்" },
+                      { key: "english", label: "🌐 English" },
+                      { key: "love", label: "❤️ காதல்" },
                     ] as const
                   ).map((t) => (
                     <button
                       key={t.key}
-                      onClick={() => setTab(t.key)}
-                      className={`py-1.5 px-2 rounded-xl text-xs font-bold transition-all truncate ${
-                        tab === t.key
+                      onClick={() => setFolder(t.key)}
+                      className={`py-1 px-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+                        folder === t.key
                           ? "bg-gradient-to-r from-rose-500 to-sky-500 text-white shadow-md"
-                          : "text-slate-400 hover:text-slate-200"
+                          : "text-slate-400 hover:text-slate-200 bg-slate-900 border border-slate-800"
                       }`}
                     >
                       {t.label}
@@ -493,25 +539,26 @@ function UnlimitedStickerSheet({
                   ))}
                 </div>
 
-                <button onClick={onClose} className="p-2 rounded-xl bg-slate-900 text-slate-400 hover:text-white">
+                <button onClick={onClose} className="p-1.5 rounded-xl bg-slate-900 text-slate-400 hover:text-white">
                   <X size={18} />
                 </button>
               </div>
 
+              {/* Search bar inside drawer */}
               <div className="relative">
                 <input
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search stickers (Vadivelu, Cat, Love, etc)..."
+                  placeholder="தேடுங்கள் (வடிவேலு, Rajini, Cat, etc)..."
                   className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl bg-slate-900 border border-slate-800 text-white placeholder-slate-500 outline-none focus:border-sky-500"
                 />
-                <Search size={14} className="absolute left-2.5 top-2.5 text-slate-500" />
+                <Search size={14} className="absolute left-2.5 top-2 text-slate-500" />
               </div>
             </div>
 
-            {/* Sticker Grid */}
-            <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto max-h-[60vh]">
+            {/* Compact Grid: 4 columns on mobile, 5 on desktop for high-density view */}
+            <div className="p-3 grid grid-cols-4 sm:grid-cols-5 gap-2 overflow-y-auto max-h-[55vh]">
               {filtered.map((item) => (
                 <div
                   key={item.id}
@@ -519,16 +566,18 @@ function UnlimitedStickerSheet({
                     onSelect(item);
                     onClose();
                   }}
-                  className="cursor-pointer group flex flex-col items-center justify-center p-2.5 rounded-2xl bg-slate-900/60 hover:bg-slate-900 border border-slate-800 hover:border-sky-500/60 transition-all shadow-sm active:scale-95"
+                  className="cursor-pointer group flex flex-col items-center justify-center p-1.5 rounded-2xl bg-slate-900/60 hover:bg-slate-900 border border-slate-800/80 hover:border-sky-500/70 transition-all shadow-sm active:scale-90"
                 >
-                  <div className="w-full aspect-square flex items-center justify-center overflow-hidden mb-1">
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center overflow-hidden rounded-xl bg-black/40 p-0.5">
                     <img
                       src={item.url}
-                      alt={item.title}
-                      className="max-h-full max-w-full object-contain group-hover:scale-105 transition-transform"
+                      alt={item.name}
+                      className="max-h-full max-w-full object-contain group-hover:scale-110 transition-transform"
                     />
                   </div>
-                  <p className="text-[11px] font-bold text-slate-200 truncate">{item.title}</p>
+                  <p className="text-[9px] font-bold text-slate-300 truncate w-full text-center mt-1">
+                    {item.name}
+                  </p>
                 </div>
               ))}
             </div>
@@ -875,7 +924,7 @@ function AuthSecurityModal({
 }
 
 // ==========================================
-// 7. CHUNKED VIDEO PLAYER FOR STREAMING
+// 7. CHUNKED VIDEO PLAYER
 // ==========================================
 function ChunkedVideoPlayer({ mediaId, mimeType }: { mediaId: string; mimeType: string }) {
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
@@ -909,7 +958,7 @@ function ChunkedVideoPlayer({ mediaId, mimeType }: { mediaId: string; mimeType: 
 
   if (loading) {
     return (
-      <div className="w-56 h-36 rounded-xl bg-slate-950 flex flex-col items-center justify-center p-3 border border-slate-800 text-center">
+      <div className="w-52 h-32 rounded-xl bg-slate-950 flex flex-col items-center justify-center p-3 border border-slate-800 text-center">
         <span className="w-5 h-5 border-2 border-sky-400 border-t-transparent rounded-full animate-spin mb-2" />
         <p className="text-[10px] text-sky-400 font-mono font-bold">Streaming Video...</p>
       </div>
@@ -924,7 +973,7 @@ function ChunkedVideoPlayer({ mediaId, mimeType }: { mediaId: string; mimeType: 
 }
 
 // ==========================================
-// 8. MASTER PRIVATE CHAT WORKSPACE
+// 8. MASTER CHAT WORKSPACE
 // ==========================================
 interface UserItem {
   id: string;
@@ -960,7 +1009,6 @@ export default function ChatPage() {
   const [myAvatar, setMyAvatar] = useState("");
   const [myPhone, setMyPhone] = useState("");
 
-  // Target ID to Request
   const [targetSearchId, setTargetSearchId] = useState("");
 
   // Confidential Contacts List (Only mutual accepted friends)
@@ -1127,15 +1175,16 @@ export default function ChatPage() {
       if (lastMsg && lastMsg.senderId !== myFancyNumber) {
         const previewText =
           lastMsg.type === "sticker"
-            ? "Sent a Sticker"
+            ? "Sent a GIPHY Sticker"
             : lastMsg.type === "video" || lastMsg.type === "chunked_video"
             ? "Sent a Video"
             : lastMsg.type === "audio"
             ? "Sent a Voice Note"
             : lastMsg.text;
 
+        // Trigger native notification even if browser is closed / minimized / on Windows Desktop
         if (typeof document !== "undefined" && document.visibilityState === "hidden") {
-          triggerMobileSystemNotification(`${lastMsg.senderName || lastMsg.senderId}`, previewText, lastMsg.senderAvatar);
+          triggerNativeBackgroundNotification(`${lastMsg.senderName || lastMsg.senderId}`, previewText, lastMsg.senderAvatar);
         } else {
           playNotificationChime();
         }
@@ -1481,7 +1530,6 @@ export default function ChatPage() {
           activePartner ? "hidden md:flex" : "flex"
         }`}
       >
-        {/* User Identity Header */}
         <div className="p-4 border-b border-slate-900 bg-black/60 flex-shrink-0">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2.5">
@@ -1657,7 +1705,7 @@ export default function ChatPage() {
           </div>
         ) : (
           <>
-            {/* Header */}
+            {/* Header with Back, Clear Chat, Voice and Video Call */}
             <header className="h-14 sm:h-16 flex items-center justify-between px-3 sm:px-6 bg-slate-950 border-b border-slate-900 z-10 flex-shrink-0">
               <div className="flex items-center gap-2.5 sm:gap-3">
                 <button
@@ -1722,24 +1770,24 @@ export default function ChatPage() {
                   return (
                     <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"} w-full`}>
                       <div
-                        className={`p-3 rounded-2xl max-w-[85%] sm:max-w-[60%] shadow-lg ${
+                        className={`p-2.5 sm:p-3 rounded-2xl max-w-[85%] sm:max-w-[60%] shadow-lg ${
                           isMe
                             ? "bg-gradient-to-r from-rose-600 to-rose-500 text-white rounded-tr-none shadow-rose-600/30"
                             : "bg-slate-900 text-slate-200 border border-slate-800 rounded-tl-none shadow-sky-950/40"
                         }`}
                       >
                         {msg.type === "sticker" && (
-                          <div className="w-44 aspect-square flex items-center justify-center p-1 mb-1">
+                          <div className="w-32 sm:w-40 aspect-square flex items-center justify-center p-1 mb-1 bg-black/30 rounded-xl">
                             <img src={msg.text} alt="Sticker" className="max-h-full max-w-full object-contain" />
                           </div>
                         )}
 
                         {msg.type === "image" && (
-                          <img src={msg.text} alt="Attachment" className="w-56 rounded-xl object-cover mb-1" />
+                          <img src={msg.text} alt="Attachment" className="w-52 rounded-xl object-cover mb-1" />
                         )}
 
                         {msg.type === "video" && (
-                          <div className="w-56 rounded-xl overflow-hidden bg-black mb-1">
+                          <div className="w-52 rounded-xl overflow-hidden bg-black mb-1">
                             <video src={msg.text} controls className="w-full max-h-72 rounded-xl" preload="metadata" />
                           </div>
                         )}
@@ -1749,8 +1797,8 @@ export default function ChatPage() {
                         )}
 
                         {msg.type === "audio" && (
-                          <div className="flex items-center gap-2 w-52 sm:w-60 py-1">
-                            <Volume2 size={18} className="text-sky-400 flex-shrink-0" />
+                          <div className="flex items-center gap-2 w-48 sm:w-56 py-1">
+                            <Volume2 size={16} className="text-sky-400 flex-shrink-0" />
                             <audio src={msg.text} controls className="w-full h-8" />
                           </div>
                         )}
@@ -1813,13 +1861,13 @@ export default function ChatPage() {
               </div>
             )}
 
-            {/* Message Input Composer */}
+            {/* Mobile-Aligned Input Composer */}
             <div className="p-2 sm:p-3 bg-slate-950 border-t border-slate-900 w-full flex-shrink-0 z-20 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
               <div className="max-w-4xl mx-auto flex items-end gap-1.5 sm:gap-2 bg-slate-900 border border-slate-800 rounded-2xl p-1.5 focus-within:border-sky-500 transition-colors">
                 <button
                   onClick={() => setShowStickers(true)}
                   className="p-2 text-slate-400 hover:text-rose-400 rounded-xl transition-colors"
-                  title="Stickers & Memes"
+                  title="Tamil & English Stickers"
                 >
                   <Smile size={20} />
                 </button>
@@ -1885,8 +1933,8 @@ export default function ChatPage() {
         )}
       </main>
 
-      {/* Expanded Tamil & English Sticker Drawer */}
-      <UnlimitedStickerSheet
+      {/* COMPACT GIPHY TAMIL STICKER DRAWER */}
+      <CompactGiphyStickerDrawer
         isOpen={showStickers}
         onClose={() => setShowStickers(false)}
         onSelect={(sticker) => sendMessage(sticker.url, "sticker")}
