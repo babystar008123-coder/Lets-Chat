@@ -4,30 +4,30 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(req) {
   try {
-    const body = await req.json();
-    const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-    const privateKey = process.env.VAPID_PRIVATE_KEY;
+    const pubKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    const privKey = process.env.VAPID_PRIVATE_KEY;
 
-    if (!publicKey || !privateKey || publicKey.length < 60) {
+    // Check if valid keys are present before loading web-push
+    if (!pubKey || !privKey || pubKey.length < 60) {
       return NextResponse.json({
         success: true,
         mock: true,
-        message: 'Push notification simulated (VAPID key not configured in production)'
+        message: 'Notification simulated: VAPID keys not configured in environment'
       });
     }
 
-    // Dynamic import to prevent build-time evaluation errors
-    const webPush = (await import('web-push')).default;
-    webPush.setVapidDetails(
-      'mailto:admin@lets-chat.app',
-      publicKey,
-      privateKey
+    const webpush = (await import('web-push')).default;
+    webpush.setVapidDetails(
+      'mailto:support@lets-chat.app',
+      pubKey,
+      privKey
     );
 
-    if (body.subscription) {
-      await webPush.sendNotification(
+    const body = await req.json();
+    if (body && body.subscription) {
+      await webpush.sendNotification(
         body.subscription,
-        JSON.stringify(body.payload || { title: "Let's Chat", body: "New Message" })
+        JSON.stringify(body.payload || { title: "Let's Chat", body: "New message received" })
       );
     }
 
@@ -38,5 +38,5 @@ export async function POST(req) {
 }
 
 export async function GET() {
-  return NextResponse.json({ status: 'Notification service ready' });
+  return NextResponse.json({ status: 'Notification route operational' });
 }
