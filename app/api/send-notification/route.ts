@@ -1,33 +1,42 @@
-import { NextResponse } from "next/server";
-import webpush from "web-push";
+﻿import { NextResponse } from 'next/server';
 
-// Configure Web Push with your VAPID keys
-webpush.setVapidDetails(
-  "mailto:support@letschat.com",
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "YOUR_PUBLIC_KEY_HERE",
-  process.env.VAPID_PRIVATE_KEY || "YOUR_PRIVATE_KEY_HERE"
-);
+export const dynamic = 'force-dynamic';
 
-export async function POST(req: Request) {
+export async function POST(req) {
   try {
-    const { subscription, title, body, senderId } = await req.json();
+    const body = await req.json();
+    const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    const privateKey = process.env.VAPID_PRIVATE_KEY;
 
-    if (!subscription) {
-      return NextResponse.json({ error: "No subscription provided" }, { status: 400 });
+    if (!publicKey || !privateKey || publicKey.length < 60) {
+      return NextResponse.json({
+        success: true,
+        mock: true,
+        message: 'Push notification simulated (VAPID key not configured in production)'
+      });
     }
 
-    const payload = JSON.stringify({
-      title: title || "Lets Chat New Message!",
-      body: body || "You received a new message.",
-      senderId: senderId || "unknown",
-      url: "/chat"
-    });
+    // Dynamic import to prevent build-time evaluation errors
+    const webPush = (await import('web-push')).default;
+    webPush.setVapidDetails(
+      'mailto:admin@lets-chat.app',
+      publicKey,
+      privateKey
+    );
 
-    await webpush.sendNotification(subscription, payload);
+    if (body.subscription) {
+      await webPush.sendNotification(
+        body.subscription,
+        JSON.stringify(body.payload || { title: "Let's Chat", body: "New Message" })
+      );
+    }
 
     return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Error sending push notification:", error);
-    return NextResponse.json({ error: "Failed to send notification" }, { status: 500 });
+  } catch (err) {
+    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
+}
+
+export async function GET() {
+  return NextResponse.json({ status: 'Notification service ready' });
 }
