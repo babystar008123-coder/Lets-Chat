@@ -30,12 +30,30 @@ export default function RootLayout({
     <html lang="ta" className="dark bg-black">
       <head>
         <link rel="manifest" href="/manifest.json" />
+        <link rel="apple-touch-icon" href="/icon-192.png" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
       <body className="bg-black text-white antialiased h-[100dvh] overflow-hidden overscroll-none select-none">
         {children}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                    .then(function(reg) {
+                      console.log('PWA Service Worker active:', reg.scope);
+                    })
+                    .catch(function(err) {
+                      console.error('SW registration failed:', err);
+                    });
+                });
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   );
