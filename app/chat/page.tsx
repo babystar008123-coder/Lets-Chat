@@ -64,7 +64,7 @@ import {
 } from "firebase/firestore";
 
 // ==========================================
-// 1. DESKTOP & MOBILE SYSTEM BACKGROUND NOTIFICATIONS
+// 1. MOBILE STATUS BAR BACKGROUND PUSH NOTIFICATIONS
 // ==========================================
 function playNotificationChime() {
   try {
@@ -92,34 +92,29 @@ function playNotificationChime() {
   }
 }
 
-// Triggers native Windows/Android status notification even when browser is minimized or screen locked
-function triggerNativeBackgroundNotification(title: string, body: string, icon?: string) {
+// Triggers Android & Windows Native Status Bar Notification
+function triggerMobileStatusBarNotification(title: string, body: string, icon?: string) {
   playNotificationChime();
+
   if (typeof window === "undefined" || !("Notification" in window)) return;
 
   if (Notification.permission === "granted") {
-    try {
-      const notif = new Notification(title, {
-        body,
-        icon: icon || "/favicon.ico",
-        badge: "/favicon.ico",
-        tag: "lets-chat-msg",
-      } as any);
-
-      notif.onclick = () => {
-        window.focus();
-        notif.close();
-      };
-    } catch (e) {
-      if (navigator.serviceWorker && navigator.serviceWorker.ready) {
-        navigator.serviceWorker.ready.then((reg) => {
-          reg.showNotification(title, {
-            body,
-            icon: icon || "/favicon.ico",
-            badge: "/favicon.ico",
-          });
-        });
-      }
+    // 1. Service Worker Notification (Works when Chrome is completely closed / screen locked)
+    if (navigator.serviceWorker) {
+      navigator.serviceWorker.ready.then((registration) => {
+        registration.showNotification(title, {
+          body,
+          icon: icon || "/favicon.ico",
+          badge: "/favicon.ico",
+          tag: "lets-chat-status-notification",
+          renotify: true,
+        } as any);
+      }).catch(() => {
+        // Fallback to standard window Notification
+        new Notification(title, { body, icon: icon || "/favicon.ico" });
+      });
+    } else {
+      new Notification(title, { body, icon: icon || "/favicon.ico" });
     }
   }
 }
@@ -330,7 +325,7 @@ function InlineCallModal({
 }
 
 // ==========================================
-// 4. GIPHY TAMIL MEME STICKERS VAULT (COMPACT & EXPANDED)
+// 4. EXTENDED GIPHY TAMIL & ENGLISH STICKERS VAULT
 // ==========================================
 interface StickerItem {
   id: string;
@@ -340,7 +335,7 @@ interface StickerItem {
 }
 
 const GIPHY_TAMIL_MEME_VAULT: StickerItem[] = [
-  // Vadivelu Comedy Special (GIPHY Verified CDN)
+  // Vadivelu Comedy Special
   {
     id: "g_vadi_laugh",
     url: "https://media3.giphy.com/media/v1.Y2lkPTZjMDliOTUyZGNkcGpic3ZuczRkaWxneWF1MmVheWFuZGJiN2RkeTZ4ZnFudm11YyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/YSdvQxlheVHxQw5hEa/200.gif",
@@ -356,31 +351,43 @@ const GIPHY_TAMIL_MEME_VAULT: StickerItem[] = [
   {
     id: "g_vadi_sing",
     url: "https://media4.giphy.com/media/v1.Y2lkPTZjMDliOTUyd2I5Mjk3OTl4eHA1Z3hpbjBsejRyMHdoYXkzYXNucTk5aTNpODk3MCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/YuWeSpstyR92U5cP0y/200w.gif",
-    name: "Sing in the Rain",
+    name: "Singing Vadi",
     category: "vadivelu",
   },
   {
-    id: "g_vadi_thinking",
-    url: "https://images.unsplash.com/photo-1544717305-2782549b5136?w=300&auto=format&fit=crop&q=80",
-    name: "Kaipulla Winner",
+    id: "g_vadi_kaipulla",
+    url: "https://images.unsplash.com/photo-1544717305-2782549b5136?w=250&auto=format&fit=crop&q=80",
+    name: "Kaipulla",
     category: "vadivelu",
   },
   {
-    id: "g_vadi_dance",
-    url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80",
+    id: "g_vadi_aappu",
+    url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=250&auto=format&fit=crop&q=80",
     name: "Aappu Vechittaanya",
     category: "vadivelu",
   },
   {
     id: "g_vadi_nesamani",
-    url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80",
+    url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=250&auto=format&fit=crop&q=80",
     name: "Nesamani Aani",
     category: "vadivelu",
   },
-
-  // Tamil Mass & Punch (Rajini, Vijay, Ajith)
   {
-    id: "g_rajini_mass",
+    id: "g_vadi_crying",
+    url: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=250&auto=format&fit=crop&q=80",
+    name: "Valikidhu Azhudhuduven",
+    category: "vadivelu",
+  },
+  {
+    id: "g_vadi_run",
+    url: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=250&auto=format&fit=crop&q=80",
+    name: "Building Strong",
+    category: "vadivelu",
+  },
+
+  // Tamil Mass & Punch (Rajini, Vijay, Ajith, Kamal)
+  {
+    id: "g_rajini_baasha",
     url: "https://media3.giphy.com/media/v1.Y2lkPTZjMDliOTUycWc4eW8wMGt5ZWN3dnZ1MWFvZHBsNW92cnNkN3cybnN6aXh3emxucyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/3S7dHcfGYlxvqjtHqn/200w.gif",
     name: "Rajini Baasha",
     category: "mass",
@@ -393,38 +400,50 @@ const GIPHY_TAMIL_MEME_VAULT: StickerItem[] = [
   },
   {
     id: "g_ajith_mankatha",
-    url: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=300&auto=format&fit=crop&q=80",
+    url: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=250&auto=format&fit=crop&q=80",
     name: "Ajith Mankatha",
     category: "mass",
   },
   {
     id: "g_kamal_vikram",
-    url: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80",
-    name: "Kamal Aarambikkalaangala",
+    url: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=250&auto=format&fit=crop&q=80",
+    name: "Kamal Vikram",
+    category: "mass",
+  },
+  {
+    id: "g_rajini_padayappa",
+    url: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=250&auto=format&fit=crop&q=80",
+    name: "En Vazhi Thani Vazhi",
     category: "mass",
   },
 
   // Tamil Dialogues & Counter
   {
     id: "g_gounda_arasiyal",
-    url: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300&auto=format&fit=crop&q=80",
+    url: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=250&auto=format&fit=crop&q=80",
     name: "Arasiyalla Idhellam",
     category: "dialogues",
   },
   {
     id: "g_santha_nanba",
-    url: "https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=300&auto=format&fit=crop&q=80",
+    url: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=250&auto=format&fit=crop&q=80",
     name: "Nanbenda Santhanam",
     category: "dialogues",
   },
   {
     id: "g_vivek_comedy",
-    url: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=300&auto=format&fit=crop&q=80",
+    url: "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=250&auto=format&fit=crop&q=80",
     name: "Innaiku Setha Vivek",
     category: "dialogues",
   },
+  {
+    id: "g_gounda_soppana",
+    url: "https://images.unsplash.com/photo-1463453091185-61582044d556?w=250&auto=format&fit=crop&q=80",
+    name: "Soppana Sundari",
+    category: "dialogues",
+  },
 
-  // English & Global Trending Memes
+  // English & Trending Memes
   {
     id: "g_cat_vibing",
     url: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbnZhcXpnNDhhM2p5Z2g4NGgxcXN5Y3JtNWd2eG9mN3Z0eXVhOTM1eSZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/MDJ9IbxxvDUQM/giphy.gif",
@@ -446,7 +465,7 @@ const GIPHY_TAMIL_MEME_VAULT: StickerItem[] = [
   {
     id: "g_popcat_click",
     url: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3Q0bWk2dmk5N2pmeWp1cTZxcHRnd2Q4ZjhpZHVxdmdwbWVtc2ptYiZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/osAcIGJnJ0sjpp3Qg8/giphy.gif",
-    name: "Popcat Mouth",
+    name: "Popcat",
     category: "english",
   },
 
@@ -459,14 +478,20 @@ const GIPHY_TAMIL_MEME_VAULT: StickerItem[] = [
   },
   {
     id: "g_surya_vtv",
-    url: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300&auto=format&fit=crop&q=80",
+    url: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=250&auto=format&fit=crop&q=80",
     name: "Jessie VTV",
     category: "love",
   },
   {
     id: "g_dhanush_3",
-    url: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=300&auto=format&fit=crop&q=80",
+    url: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=250&auto=format&fit=crop&q=80",
     name: "Kannazhaga 3",
+    category: "love",
+  },
+  {
+    id: "g_vijay_kushi",
+    url: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=250&auto=format&fit=crop&q=80",
+    name: "Chellame Kushi",
     category: "love",
   },
 ];
@@ -507,13 +532,11 @@ function CompactGiphyStickerDrawer({
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 280 }}
-            className="fixed bottom-0 inset-x-0 max-h-[75vh] bg-slate-950 border-t border-sky-500/40 rounded-t-[32px] shadow-[0_-10px_50px_rgba(0,0,0,0.95)] z-50 flex flex-col overflow-hidden pb-[calc(1rem+env(safe-area-inset-bottom))]"
+            className="fixed bottom-0 inset-x-0 max-h-[72vh] bg-slate-950 border-t border-sky-500/40 rounded-t-[32px] shadow-[0_-10px_50px_rgba(0,0,0,0.95)] z-50 flex flex-col overflow-hidden pb-[calc(1rem+env(safe-area-inset-bottom))]"
           >
-            {/* Grab Handle */}
-            <div className="w-12 h-1.5 bg-slate-800 rounded-full mx-auto my-3" />
+            <div className="w-12 h-1.5 bg-slate-800 rounded-full mx-auto my-2.5" />
 
-            {/* Folder Header Tabs */}
-            <div className="px-3 pb-3 border-b border-slate-900 space-y-2">
+            <div className="px-3 pb-2.5 border-b border-slate-900 space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex gap-1 overflow-x-auto no-scrollbar py-1 flex-1 mr-2">
                   {(
@@ -544,21 +567,20 @@ function CompactGiphyStickerDrawer({
                 </button>
               </div>
 
-              {/* Search bar inside drawer */}
               <div className="relative">
                 <input
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="தேடுங்கள் (வடிவேலு, Rajini, Cat, etc)..."
+                  placeholder="ஸ்டிக்கர் தேடுங்கள் (வடிவேலு, Rajini, Cat, etc)..."
                   className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl bg-slate-900 border border-slate-800 text-white placeholder-slate-500 outline-none focus:border-sky-500"
                 />
                 <Search size={14} className="absolute left-2.5 top-2 text-slate-500" />
               </div>
             </div>
 
-            {/* Compact Grid: 4 columns on mobile, 5 on desktop for high-density view */}
-            <div className="p-3 grid grid-cols-4 sm:grid-cols-5 gap-2 overflow-y-auto max-h-[55vh]">
+            {/* High-Density 5-Column Compact Grid */}
+            <div className="p-2.5 grid grid-cols-4 sm:grid-cols-5 gap-2 overflow-y-auto max-h-[50vh]">
               {filtered.map((item) => (
                 <div
                   key={item.id}
@@ -566,9 +588,9 @@ function CompactGiphyStickerDrawer({
                     onSelect(item);
                     onClose();
                   }}
-                  className="cursor-pointer group flex flex-col items-center justify-center p-1.5 rounded-2xl bg-slate-900/60 hover:bg-slate-900 border border-slate-800/80 hover:border-sky-500/70 transition-all shadow-sm active:scale-90"
+                  className="cursor-pointer group flex flex-col items-center justify-center p-1 rounded-2xl bg-slate-900/60 hover:bg-slate-900 border border-slate-800/80 hover:border-sky-500/70 transition-all shadow-sm active:scale-90"
                 >
-                  <div className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center overflow-hidden rounded-xl bg-black/40 p-0.5">
+                  <div className="w-13 h-13 sm:w-16 sm:h-16 flex items-center justify-center overflow-hidden rounded-xl bg-black/50 p-0.5">
                     <img
                       src={item.url}
                       alt={item.name}
@@ -924,7 +946,7 @@ function AuthSecurityModal({
 }
 
 // ==========================================
-// 7. CHUNKED VIDEO PLAYER
+// 7. CHUNKED VIDEO PLAYER FOR STREAMING
 // ==========================================
 function ChunkedVideoPlayer({ mediaId, mimeType }: { mediaId: string; mimeType: string }) {
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
@@ -973,7 +995,7 @@ function ChunkedVideoPlayer({ mediaId, mimeType }: { mediaId: string; mimeType: 
 }
 
 // ==========================================
-// 8. MASTER CHAT WORKSPACE
+// 8. MASTER PRIVATE CHAT WORKSPACE
 // ==========================================
 interface UserItem {
   id: string;
@@ -1011,11 +1033,8 @@ export default function ChatPage() {
 
   const [targetSearchId, setTargetSearchId] = useState("");
 
-  // Confidential Contacts List (Only mutual accepted friends)
   const [acceptedFriends, setAcceptedFriends] = useState<UserItem[]>([]);
   const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
-
-  // Selected private chat partner
   const [activePartner, setActivePartner] = useState<UserItem | null>(null);
 
   const [callActive, setCallActive] = useState(false);
@@ -1049,6 +1068,21 @@ export default function ChatPage() {
     toggleVideo,
   } = useInlineAgora();
 
+  // Register Service Worker on Load for Mobile Status Bar Push Notifications
+  useEffect(() => {
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch((err) => {
+        console.warn("ServiceWorker registration:", err);
+      });
+    }
+
+    if (typeof window !== "undefined" && "Notification" in window) {
+      if (Notification.permission === "default") {
+        Notification.requestPermission();
+      }
+    }
+  }, []);
+
   // Authentication check
   useEffect(() => {
     const savedPhone = localStorage.getItem("lovechat_perm_phone");
@@ -1068,7 +1102,7 @@ export default function ChatPage() {
     }
   }, []);
 
-  // CONFIDENTIAL REAL-TIME CONTACTS & REQUEST SYNC
+  // Confidential Contacts & Request Sync
   useEffect(() => {
     if (!myFancyNumber) return;
 
@@ -1182,12 +1216,12 @@ export default function ChatPage() {
             ? "Sent a Voice Note"
             : lastMsg.text;
 
-        // Trigger native notification even if browser is closed / minimized / on Windows Desktop
-        if (typeof document !== "undefined" && document.visibilityState === "hidden") {
-          triggerNativeBackgroundNotification(`${lastMsg.senderName || lastMsg.senderId}`, previewText, lastMsg.senderAvatar);
-        } else {
-          playNotificationChime();
-        }
+        // Triggers native mobile status bar notification when browser is minimized/locked/exited
+        triggerMobileStatusBarNotification(
+          `${lastMsg.senderName || lastMsg.senderId} (ID: ${lastMsg.senderId})`,
+          previewText,
+          lastMsg.senderAvatar
+        );
 
         setActiveToast({
           sender: lastMsg.senderName || lastMsg.senderId,
@@ -1202,7 +1236,6 @@ export default function ChatPage() {
     return () => unsubscribe();
   }, [activePartner, myFancyNumber]);
 
-  // Send confidential friend request by 10-digit ID
   const handleSendFriendRequest = async () => {
     const cleanTarget = targetSearchId.trim().replace(/\D/g, "");
     if (cleanTarget.length !== 10) {
@@ -1230,7 +1263,7 @@ export default function ChatPage() {
         createdAt: serverTimestamp(),
       });
 
-      alert(`Confidential chat request sent to ID ${cleanTarget}! Once they accept, they will appear in your contacts.`);
+      alert(`Friend request sent to ID ${cleanTarget}! Once they accept, they will appear in your contacts.`);
       setTargetSearchId("");
     } catch (err) {
       console.error(err);
@@ -1520,7 +1553,7 @@ export default function ChatPage() {
         )}
       </AnimatePresence>
 
-      {/* Background Glows */}
+      {/* Cyber Background Glows */}
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-sky-500/10 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-rose-500/15 rounded-full blur-[140px] pointer-events-none" />
 
@@ -1631,7 +1664,7 @@ export default function ChatPage() {
           </div>
         )}
 
-        {/* Accepted Contacts Directory (Empty by default until accepted) */}
+        {/* Accepted Contacts Directory (Empty by default) */}
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
           <div className="flex items-center gap-1.5 px-1 text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">
             <ShieldCheck size={14} className="text-sky-400" />
