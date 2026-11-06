@@ -3,27 +3,20 @@ import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Send,
-  Smile,
   Video,
   Phone,
   Search,
   Paperclip,
   Heart,
-  Globe,
   UserCheck,
   Mic,
   MicOff,
   PhoneOff,
   VideoOff,
-  Sparkles,
-  ArrowRight,
   Radio,
   Copy,
   Check,
   MessageCircle,
-  Laugh,
-  Flame,
-  MessageSquareQuote,
   Menu,
   X,
   Volume2,
@@ -38,8 +31,9 @@ import {
   KeyRound,
   LogOut,
   AlertCircle,
-  BellRing,
   CheckCheck,
+  ArrowLeft,
+  Users,
 } from "lucide-react";
 import { db } from "@/lib/firebase";
 import {
@@ -237,63 +231,7 @@ function useInlineAgora() {
 }
 
 // ==========================================
-// 3. ROMANTIC NEON HEART PARTICLES SHOWER
-// ==========================================
-interface HeartParticle {
-  id: number;
-  x: number;
-  size: number;
-  duration: number;
-  emoji: string;
-}
-
-function InlineHeartShower({ trigger }: { trigger: number }) {
-  const [hearts, setHearts] = useState<HeartParticle[]>([]);
-
-  useEffect(() => {
-    if (trigger === 0) return;
-    const emojis = ["❤️", "💖", "💕", "💘", "🌹", "✨", "😍", "💋", "🔥", "💙"];
-    const newItems: HeartParticle[] = Array.from({ length: 18 }).map((_, i) => ({
-      id: Date.now() + i,
-      x: Math.random() * 85 + 5,
-      size: Math.random() * 16 + 22,
-      duration: Math.random() * 1.5 + 1.8,
-      emoji: emojis[Math.floor(Math.random() * emojis.length)],
-    }));
-
-    setHearts((prev) => [...prev, ...newItems]);
-    const timer = setTimeout(() => setHearts([]), 3500);
-    return () => clearTimeout(timer);
-  }, [trigger]);
-
-  return (
-    <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
-      <AnimatePresence>
-        {hearts.map((h) => (
-          <motion.div
-            key={h.id}
-            initial={{ opacity: 1, y: "105vh", x: `${h.x}vw`, scale: 0.4 }}
-            animate={{
-              opacity: [1, 1, 0],
-              y: "-15vh",
-              x: `${h.x + (Math.random() * 12 - 6)}vw`,
-              scale: [0.4, 1.3, 1],
-              rotate: [0, Math.random() * 40 - 20],
-            }}
-            transition={{ duration: h.duration, ease: "easeOut" }}
-            style={{ fontSize: `${h.size}px` }}
-            className="absolute bottom-0 select-none filter drop-shadow-[0_0_12px_rgba(244,63,94,0.8)]"
-          >
-            {h.emoji}
-          </motion.div>
-        ))}
-      </AnimatePresence>
-    </div>
-  );
-}
-
-// ==========================================
-// 4. INLINE CALL HUD MODAL
+// 3. CALL HUD MODAL
 // ==========================================
 function InlineCallModal({
   channelName,
@@ -329,7 +267,7 @@ function InlineCallModal({
               <div className="w-24 h-24 rounded-3xl bg-gradient-to-tr from-rose-500 via-sky-500 to-indigo-600 flex items-center justify-center mx-auto text-3xl font-black text-white shadow-[0_0_30px_rgba(244,63,94,0.6)] animate-pulse">
                 LC
               </div>
-              <p className="text-base font-bold text-slate-200">Room: {channelName}</p>
+              <p className="text-base font-bold text-slate-200">Call: {channelName}</p>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-sky-500/10 border border-sky-500/30 text-sky-400 text-xs font-semibold">
                 <span className="w-2 h-2 rounded-full bg-sky-400 animate-ping" />
                 {remoteUsers.length > 0 ? "Call Connected" : "Connecting..."}
@@ -349,7 +287,7 @@ function InlineCallModal({
           <button
             onClick={onToggleMute}
             className={`p-4 rounded-2xl transition-all ${
-              isAudioMuted ? "bg-rose-600 text-white shadow-lg shadow-rose-600/40" : "bg-slate-900 border border-slate-700 text-slate-200"
+              isAudioMuted ? "bg-rose-600 text-white shadow-lg" : "bg-slate-900 border border-slate-700 text-slate-200"
             }`}
           >
             {isAudioMuted ? <MicOff size={20} /> : <Mic size={20} />}
@@ -359,7 +297,7 @@ function InlineCallModal({
             <button
               onClick={onToggleVideo}
               className={`p-4 rounded-2xl transition-all ${
-                !isVideoEnabled ? "bg-rose-600 text-white shadow-lg shadow-rose-600/40" : "bg-slate-900 border border-slate-700 text-slate-200"
+                !isVideoEnabled ? "bg-rose-600 text-white shadow-lg" : "bg-slate-900 border border-slate-700 text-slate-200"
               }`}
             >
               {!isVideoEnabled ? <VideoOff size={20} /> : <Video size={20} />}
@@ -379,22 +317,20 @@ function InlineCallModal({
 }
 
 // ==========================================
-// 5. USER PROFILE CARD MODAL
+// 4. USER PROFILE CARD MODAL
 // ==========================================
 function UserProfileCardModal({
   user,
   myId,
   isOpen,
   onClose,
-  onRequestFriend,
   onOpenDirectChat,
 }: {
   user: { id: string; name: string; avatar: string } | null;
   myId: string;
   isOpen: boolean;
   onClose: () => void;
-  onRequestFriend: (targetId: string) => void;
-  onOpenDirectChat: (targetId: string) => void;
+  onOpenDirectChat: (targetUser: { id: string; name: string; avatar: string }) => void;
 }) {
   if (!isOpen || !user) return null;
   const isMe = user.id === myId;
@@ -426,33 +362,20 @@ function UserProfileCardModal({
 
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold mb-6">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-          <span>Active on Lets Chat</span>
+          <span>Active User</span>
         </div>
 
         {!isMe ? (
-          <div className="space-y-2.5">
-            <button
-              onClick={() => {
-                onRequestFriend(user.id);
-                onClose();
-              }}
-              className="w-full py-3 bg-gradient-to-r from-rose-600 to-sky-600 hover:from-rose-500 hover:to-sky-500 text-white font-black rounded-xl text-xs shadow-lg shadow-rose-600/30 transition-transform active:scale-95 flex items-center justify-center gap-2"
-            >
-              <UserPlus size={16} />
-              <span>Send Friend Request</span>
-            </button>
-
-            <button
-              onClick={() => {
-                onOpenDirectChat(user.id);
-                onClose();
-              }}
-              className="w-full py-2.5 bg-slate-900 border border-slate-800 hover:border-sky-500/40 text-slate-300 text-xs font-bold rounded-xl flex items-center justify-center gap-2"
-            >
-              <MessageCircle size={15} />
-              <span>Direct Message</span>
-            </button>
-          </div>
+          <button
+            onClick={() => {
+              onOpenDirectChat(user);
+              onClose();
+            }}
+            className="w-full py-3 bg-gradient-to-r from-rose-600 to-sky-600 hover:from-rose-500 hover:to-sky-500 text-white font-black rounded-xl text-xs shadow-lg shadow-rose-600/30 transition-transform active:scale-95 flex items-center justify-center gap-2"
+          >
+            <MessageCircle size={16} />
+            <span>Open Direct Chat</span>
+          </button>
         ) : (
           <p className="text-xs text-slate-500 font-medium">This is your profile.</p>
         )}
@@ -462,7 +385,7 @@ function UserProfileCardModal({
 }
 
 // ==========================================
-// 6. PROFILE EDITOR MODAL
+// 5. PROFILE EDITOR MODAL
 // ==========================================
 function ProfileModal({
   isOpen,
@@ -587,7 +510,7 @@ function ProfileModal({
 }
 
 // ==========================================
-// 7. LOGIN & PIN REGISTRATION MODAL
+// 6. LOGIN & REGISTRATION MODAL
 // ==========================================
 function AuthSecurityModal({
   isOpen,
@@ -766,7 +689,7 @@ function AuthSecurityModal({
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Koushik"
+                placeholder="Enter your name..."
                 className="w-full px-3 py-2.5 text-xs rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 outline-none focus:border-sky-500"
                 required
               />
@@ -787,7 +710,7 @@ function AuthSecurityModal({
 }
 
 // ==========================================
-// 8. CHUNKED VIDEO PLAYER FOR LARGE VIDEOS
+// 7. CHUNKED VIDEO PLAYER FOR LARGE VIDEOS
 // ==========================================
 function ChunkedVideoPlayer({ mediaId, mimeType }: { mediaId: string; mimeType: string }) {
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
@@ -836,8 +759,15 @@ function ChunkedVideoPlayer({ mediaId, mimeType }: { mediaId: string; mimeType: 
 }
 
 // ==========================================
-// 9. MASTER CHAT WORKSPACE (PERFECT MOBILE ALIGNMENT)
+// 8. MASTER USER DIRECTORY & CHAT WORKSPACE
 // ==========================================
+interface UserItem {
+  id: string;
+  name: string;
+  avatar: string;
+  online?: boolean;
+}
+
 interface Message {
   id: string;
   text: string;
@@ -847,17 +777,7 @@ interface Message {
   type: "text" | "meme" | "image" | "video" | "chunked_video" | "audio";
   mediaId?: string;
   mimeType?: string;
-  memeMeta?: { quote: string; actor: string; movie: string };
-  reactions?: Record<string, string>;
   read?: boolean;
-  createdAt?: any;
-}
-
-interface ChatRequest {
-  id: string;
-  from: string;
-  to: string;
-  status: "pending" | "accepted" | "declined";
   createdAt?: any;
 }
 
@@ -868,28 +788,23 @@ export default function ChatPage() {
   const [myName, setMyName] = useState("");
   const [myAvatar, setMyAvatar] = useState("");
   const [myPhone, setMyPhone] = useState("");
-  const [targetId, setTargetId] = useState("");
-  const [activeChat, setActiveChat] = useState<{ id: string; name: string; isGlobal: boolean; isAccepted?: boolean }>({
-    id: "global",
-    name: "Global Lounge",
-    isGlobal: true,
-    isAccepted: true,
-  });
 
-  const [friendsList, setFriendsList] = useState<string[]>([]);
+  // Directory of all registered users
+  const [allUsers, setAllUsers] = useState<UserItem[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Selected private chat partner
+  const [activePartner, setActivePartner] = useState<UserItem | null>(null);
+
   const [callActive, setCallActive] = useState(false);
   const [callIsVideo, setCallIsVideo] = useState(true);
-  const [heartTrigger, setHeartTrigger] = useState(0);
   const [copied, setCopied] = useState(false);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   const [inspectedUser, setInspectedUser] = useState<{ id: string; name: string; avatar: string } | null>(null);
-  const [showNotifPrompt, setShowNotifPrompt] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
-  const [incomingRequests, setIncomingRequests] = useState<ChatRequest[]>([]);
-  const [activeToast, setActiveToast] = useState<{ sender: string; text: string; roomId: string } | null>(null);
+  const [activeToast, setActiveToast] = useState<{ sender: string; text: string; userObj: UserItem } | null>(null);
 
   const [isRecording, setIsRecording] = useState(false);
   const [recordSec, setRecordSec] = useState(0);
@@ -912,26 +827,7 @@ export default function ChatPage() {
     toggleVideo,
   } = useInlineAgora();
 
-  useEffect(() => {
-    if (typeof window !== "undefined" && "Notification" in window) {
-      if (Notification.permission === "default") {
-        setShowNotifPrompt(true);
-      }
-    }
-  }, []);
-
-  const requestNotificationAccess = async () => {
-    if (typeof window !== "undefined" && "Notification" in window) {
-      const perm = await Notification.requestPermission();
-      if (perm === "granted") {
-        setShowNotifPrompt(false);
-        triggerMobileSystemNotification("Notifications Enabled! 🔔", "You will now receive alerts even when outside Lets Chat.");
-      } else {
-        setShowNotifPrompt(false);
-      }
-    }
-  };
-
+  // Authentication check
   useEffect(() => {
     const savedPhone = localStorage.getItem("lovechat_perm_phone");
     const savedId = localStorage.getItem("lovechat_perm_id");
@@ -950,59 +846,41 @@ export default function ChatPage() {
     }
   }, []);
 
-  // Bi-Directional Friend Synchronization
+  // Fetch all registered users in real-time
   useEffect(() => {
     if (!myFancyNumber) return;
 
-    const qIncoming = query(
-      collection(db, "chat_requests"),
-      where("to", "==", myFancyNumber),
-      where("status", "==", "pending")
-    );
-    const unsubIncoming = onSnapshot(qIncoming, (snap) => {
-      const reqs = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<ChatRequest, "id">) }));
-      if (reqs.length > incomingRequests.length) {
-        triggerMobileSystemNotification("New Friend Request! 💌", `${reqs[0]?.from} wants to connect with you.`);
-      }
-      setIncomingRequests(reqs);
+    const usersRef = collection(db, "users");
+    const unsub = onSnapshot(usersRef, (snapshot) => {
+      const list: UserItem[] = [];
+      snapshot.forEach((docSnap) => {
+        const d = docSnap.data();
+        if (docSnap.id !== myFancyNumber) {
+          list.push({
+            id: docSnap.id,
+            name: d.name || `User-${docSnap.id.slice(-4)}`,
+            avatar: d.avatar || "",
+            online: d.online ?? true,
+          });
+        }
+      });
+      setAllUsers(list);
     });
 
-    const qSentAccepted = query(
-      collection(db, "chat_requests"),
-      where("from", "==", myFancyNumber),
-      where("status", "==", "accepted")
-    );
-    const unsubSentAccepted = onSnapshot(qSentAccepted, (snap) => {
-      const acceptedPartners = snap.docs.map((d) => d.data().to);
-      setFriendsList((prev) => Array.from(new Set([...prev, ...acceptedPartners])));
-    });
+    return () => unsub();
+  }, [myFancyNumber]);
 
-    const qReceivedAccepted = query(
-      collection(db, "chat_requests"),
-      where("to", "==", myFancyNumber),
-      where("status", "==", "accepted")
-    );
-    const unsubReceivedAccepted = onSnapshot(qReceivedAccepted, (snap) => {
-      const acceptedPartners = snap.docs.map((d) => d.data().from);
-      setFriendsList((prev) => Array.from(new Set([...prev, ...acceptedPartners])));
-    });
-
-    return () => {
-      unsubIncoming();
-      unsubSentAccepted();
-      unsubReceivedAccepted();
-    };
-  }, [myFancyNumber, incomingRequests.length]);
-
-  // Messages Stream & Read Status
+  // Real-time messages for active 1-on-1 private chat
   useEffect(() => {
-    if (!myFancyNumber) return;
+    if (!myFancyNumber || !activePartner) {
+      setMessages([]);
+      return;
+    }
 
-    const messagesRef = activeChat.isGlobal
-      ? collection(db, "global_messages")
-      : collection(db, "private_chats", activeChat.id, "messages");
-
+    const roomId = [myFancyNumber, activePartner.id].sort().join("_");
+    const messagesRef = collection(db, "private_chats", roomId, "messages");
     const q = query(messagesRef, orderBy("createdAt", "asc"));
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const fetched = snapshot.docs.map((docSnap) => {
         const data = docSnap.data();
@@ -1034,45 +912,15 @@ export default function ChatPage() {
         setActiveToast({
           sender: lastMsg.senderName || lastMsg.senderId,
           text: previewText,
-          roomId: activeChat.id,
+          userObj: activePartner,
         });
-
-        if (lastMsg.text.includes("❤️")) {
-          setHeartTrigger((prev) => prev + 1);
-        }
       }
 
       setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
     });
 
     return () => unsubscribe();
-  }, [activeChat, myFancyNumber]);
-
-  const inspectUser = async (userId: string, currentName?: string, currentAvatar?: string) => {
-    try {
-      const userDoc = await getDoc(doc(db, "users", userId));
-      if (userDoc.exists()) {
-        const data = userDoc.data();
-        setInspectedUser({
-          id: userId,
-          name: data.name || currentName || userId,
-          avatar: data.avatar || currentAvatar || "",
-        });
-      } else {
-        setInspectedUser({
-          id: userId,
-          name: currentName || userId,
-          avatar: currentAvatar || "",
-        });
-      }
-    } catch (e) {
-      setInspectedUser({
-        id: userId,
-        name: currentName || userId,
-        avatar: currentAvatar || "",
-      });
-    }
-  };
+  }, [activePartner, myFancyNumber]);
 
   const handleAuthSuccess = (userObj: { phone: string; seqId: string; name: string; avatar: string }) => {
     localStorage.setItem("lovechat_perm_phone", userObj.phone);
@@ -1107,64 +955,16 @@ export default function ChatPage() {
     }
   };
 
-  const sendConnectionRequest = async (partnerId: string) => {
-    if (!partnerId || partnerId === myFancyNumber) return;
-
-    try {
-      await addDoc(collection(db, "chat_requests"), {
-        from: myFancyNumber,
-        to: partnerId,
-        status: "pending",
-        createdAt: serverTimestamp(),
-      });
-      alert(`Friend request sent to ${partnerId}! When they accept, your conversation will open on both phones.`);
-      setTargetId("");
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const acceptConnectionRequest = async (req: ChatRequest) => {
-    try {
-      await updateDoc(doc(db, "chat_requests", req.id), { status: "accepted" });
-
-      const roomId = [myFancyNumber, req.from].sort().join("_");
-      setActiveChat({ id: roomId, name: req.from, isGlobal: false, isAccepted: true });
-
-      setFriendsList((prev) => Array.from(new Set([...prev, req.from])));
-      setIncomingRequests((prev) => prev.filter((r) => r.id !== req.id));
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const declineConnectionRequest = async (reqId: string) => {
-    try {
-      await updateDoc(doc(db, "chat_requests", reqId), { status: "declined" });
-      setIncomingRequests((prev) => prev.filter((r) => r.id !== reqId));
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const selectPrivateChat = (partnerId: string) => {
-    if (!partnerId || partnerId === myFancyNumber) return;
-    const roomId = [myFancyNumber, partnerId].sort().join("_");
-    setActiveChat({ id: roomId, name: partnerId, isGlobal: false, isAccepted: true });
-    setTargetId("");
-    setIsDrawerOpen(false);
-  };
-
   const sendMessage = async (
     text: string,
-    type: "text" | "meme" | "image" | "video" | "chunked_video" | "audio" = "text",
+    type: "text" | "image" | "video" | "chunked_video" | "audio" = "text",
     extraPayload?: Record<string, any>
   ) => {
     if (!text.trim() && type === "text") return;
+    if (!activePartner) return;
 
-    const messagesRef = activeChat.isGlobal
-      ? collection(db, "global_messages")
-      : collection(db, "private_chats", activeChat.id, "messages");
+    const roomId = [myFancyNumber, activePartner.id].sort().join("_");
+    const messagesRef = collection(db, "private_chats", roomId, "messages");
 
     try {
       await addDoc(messagesRef, {
@@ -1287,15 +1087,12 @@ export default function ChatPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const triggerLoveBurst = () => {
-    setHeartTrigger((prev) => prev + 1);
-    sendMessage("❤️❤️❤️ LOVE SHOWER ❤️❤️❤️", "text");
-  };
-
   const initiateCall = async (video: boolean) => {
+    if (!activePartner) return;
+    const roomId = [myFancyNumber, activePartner.id].sort().join("_");
     setCallIsVideo(video);
     setCallActive(true);
-    await startCall(activeChat.id, video);
+    await startCall(roomId, video);
   };
 
   const terminateCall = async () => {
@@ -1303,18 +1100,25 @@ export default function ChatPage() {
     setCallActive(false);
   };
 
+  const filteredUsers = allUsers.filter(
+    (u) =>
+      u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      u.id.includes(searchQuery.trim())
+  );
+
   return (
     <div className="fixed inset-0 h-[100dvh] w-full overflow-hidden bg-black text-slate-100 font-sans select-none flex flex-row">
-      <InlineHeartShower trigger={heartTrigger} />
-
-      {/* Floating Notification */}
+      {/* Floating In-App Toast */}
       <AnimatePresence>
         {activeToast && (
           <motion.div
             initial={{ y: -60, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -60, opacity: 0 }}
-            onClick={() => setActiveToast(null)}
+            onClick={() => {
+              setActivePartner(activeToast.userObj);
+              setActiveToast(null);
+            }}
             className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-slate-900/90 border border-sky-500/60 shadow-[0_0_25px_rgba(56,189,248,0.4)] backdrop-blur-xl px-4 py-2.5 rounded-2xl flex items-center gap-3 cursor-pointer max-w-sm w-[90%]"
           >
             <div className="w-8 h-8 rounded-full bg-rose-500 flex items-center justify-center text-white text-xs font-bold shadow-md">
@@ -1335,26 +1139,14 @@ export default function ChatPage() {
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-sky-500/10 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-rose-500/15 rounded-full blur-[140px] pointer-events-none" />
 
-      {/* Mobile Drawer Overlay */}
-      <AnimatePresence>
-        {isDrawerOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setIsDrawerOpen(false)}
-            className="fixed inset-0 bg-black/85 backdrop-blur-md z-30 md:hidden"
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Navigation Drawer */}
+      {/* USER DIRECTORY SIDEBAR (FULL SCREEN ON MOBILE WHEN NO CHAT IS OPEN) */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 w-80 bg-slate-950/95 backdrop-blur-2xl border-r border-sky-950/40 transition-transform duration-300 ease-in-out md:static md:translate-x-0 ${
-          isDrawerOpen ? "translate-x-0 shadow-[0_0_50px_rgba(56,189,248,0.2)]" : "-translate-x-full"
+        className={`w-full md:w-80 h-full flex flex-col bg-slate-950 border-r border-slate-900 z-30 transition-all ${
+          activePartner ? "hidden md:flex" : "flex"
         }`}
       >
-        <div className="p-4 border-b border-slate-900 bg-black/60">
+        {/* Profile Card Header */}
+        <div className="p-4 border-b border-slate-900 bg-black/60 flex-shrink-0">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2.5">
               <div
@@ -1364,38 +1156,26 @@ export default function ChatPage() {
                 {myAvatar ? (
                   <img src={myAvatar} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
-                  <Heart size={18} className="fill-white" />
+                  <User size={18} />
                 )}
               </div>
               <div>
-                <h1 className="text-base font-black tracking-tight bg-gradient-to-r from-rose-400 via-sky-300 to-indigo-400 bg-clip-text text-transparent">
-                  {myName || "Lets Chat"}
-                </h1>
-                <p className="text-[10px] text-sky-400 font-bold tracking-widest uppercase">
-                  Friends & Love Chat
-                </p>
+                <h1 className="text-base font-black tracking-tight text-white">{myName || "Lets Chat"}</h1>
+                <p className="text-[10px] text-sky-400 font-bold tracking-widest uppercase">My Profile</p>
               </div>
             </div>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setIsProfileOpen(true)}
-                className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors"
-                title="Edit Profile"
-              >
-                <Settings size={16} />
-              </button>
-              <button
-                onClick={() => setIsDrawerOpen(false)}
-                className="p-2 rounded-xl text-slate-400 hover:text-white md:hidden"
-              >
-                <X size={18} />
-              </button>
-            </div>
+            <button
+              onClick={() => setIsProfileOpen(true)}
+              className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors"
+              title="Edit Profile"
+            >
+              <Settings size={16} />
+            </button>
           </div>
 
           <div className="flex items-center justify-between p-2.5 rounded-2xl bg-slate-900/90 border border-sky-500/30 shadow-inner">
             <div>
-              <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Permanent ID</p>
+              <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Your 10-Digit ID</p>
               <p className="text-sm font-mono font-black text-rose-400 tracking-widest">
                 {myFancyNumber || "0000000001"}
               </p>
@@ -1412,324 +1192,290 @@ export default function ChatPage() {
           <div className="mt-3 relative">
             <input
               type="text"
-              value={targetId}
-              onChange={(e) => setTargetId(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && sendConnectionRequest(targetId.trim())}
-              placeholder="Search ID (e.g. 0000000002)..."
-              className="w-full pl-9 pr-8 py-2 text-xs rounded-xl bg-slate-900 border border-slate-800 text-slate-200 placeholder-slate-500 outline-none focus:border-sky-500 transition-all font-mono"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search user by name or ID..."
+              className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-slate-900 border border-slate-800 text-slate-200 placeholder-slate-500 outline-none focus:border-sky-500 transition-all font-mono"
             />
             <Search size={14} className="absolute left-3 top-2.5 text-slate-500" />
-            {targetId && (
-              <button
-                onClick={() => sendConnectionRequest(targetId.trim())}
-                className="absolute right-2 top-1.5 p-1 rounded-lg bg-sky-600 text-white hover:bg-sky-500"
-                title="Send Chat Request"
-              >
-                <UserPlus size={13} />
-              </button>
-            )}
           </div>
         </div>
 
-        {/* Incoming Friend Requests */}
-        {incomingRequests.length > 0 && (
-          <div className="p-3 bg-rose-500/10 border-b border-rose-500/30">
-            <div className="flex items-center gap-1.5 mb-2 text-rose-400 font-bold text-xs">
-              <Bell size={14} className="animate-bounce" />
-              <span>Incoming Friend Requests</span>
-            </div>
-            {incomingRequests.map((req) => (
-              <div key={req.id} className="p-2.5 rounded-xl bg-slate-900 border border-rose-500/40 flex items-center justify-between mb-2">
-                <div>
-                  <p className="text-xs font-mono font-bold text-white">{req.from}</p>
-                  <p className="text-[10px] text-slate-400">Wants to chat with you!</p>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => acceptConnectionRequest(req)}
-                    className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold shadow-md"
-                  >
-                    Accept
-                  </button>
-                  <button
-                    onClick={() => declineConnectionRequest(req.id)}
-                    className="px-2 py-1 rounded-lg bg-slate-800 text-slate-400 text-[10px] hover:text-white"
-                  >
-                    Ignore
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div className="flex-1 overflow-y-auto p-3 space-y-1.5">
-          <div
-            onClick={() => {
-              setActiveChat({ id: "global", name: "Global Lounge", isGlobal: true, isAccepted: true });
-              setIsDrawerOpen(false);
-            }}
-            className={`p-3 rounded-2xl cursor-pointer transition-all flex items-center justify-between ${
-              activeChat.isGlobal
-                ? "bg-gradient-to-r from-rose-500/20 via-sky-500/20 to-indigo-500/20 border border-sky-500/50 text-sky-300 font-bold shadow-[0_0_20px_rgba(56,189,248,0.2)]"
-                : "text-slate-300 hover:bg-slate-900/60"
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <Globe size={16} className={activeChat.isGlobal ? "text-sky-400" : "text-slate-400"} />
-              <span className="text-xs">Global Lounge</span>
-            </div>
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+        {/* Directory List of Users */}
+        <div className="flex-1 overflow-y-auto p-3 space-y-2">
+          <div className="flex items-center gap-2 px-1 text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">
+            <Users size={14} className="text-sky-400" />
+            <span>Select a User to Chat</span>
           </div>
 
-          <div className="pt-3">
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2 mb-2">
-              Friends & Contacts
-            </p>
-            {friendsList.length === 0 ? (
-              <div className="p-4 text-center rounded-2xl border border-dashed border-slate-800 text-slate-500 text-xs">
-                No friends yet. Tap anyone's ID in Global Lounge to connect!
-              </div>
-            ) : (
-              friendsList.map((id) => (
+          {filteredUsers.length === 0 ? (
+            <div className="p-8 text-center text-slate-500 text-xs font-medium">
+              No users registered yet.
+            </div>
+          ) : (
+            filteredUsers.map((u) => {
+              const isSelected = activePartner?.id === u.id;
+              return (
                 <div
-                  key={id}
-                  onClick={() => selectPrivateChat(id)}
-                  className={`p-2.5 rounded-2xl cursor-pointer transition-all flex items-center justify-between ${
-                    activeChat.name === id
-                      ? "bg-slate-900 border border-rose-500/50 text-rose-300 font-bold shadow-[0_0_15px_rgba(244,63,94,0.3)]"
-                      : "text-slate-400 hover:bg-slate-900/40 hover:text-slate-200"
+                  key={u.id}
+                  onClick={() => setActivePartner(u)}
+                  className={`p-3 rounded-2xl cursor-pointer transition-all flex items-center justify-between border ${
+                    isSelected
+                      ? "bg-slate-900 border-sky-500/60 shadow-[0_0_15px_rgba(56,189,248,0.2)]"
+                      : "bg-slate-950 hover:bg-slate-900/60 border-slate-900"
                   }`}
                 >
-                  <div className="flex items-center gap-2">
-                    <UserCheck size={14} className="text-sky-400" />
-                    <span className="text-xs font-mono font-semibold">{id}</span>
+                  <div className="flex items-center gap-3">
+                    <div className="relative w-11 h-11 rounded-full overflow-hidden border border-rose-500/40 bg-slate-900 flex items-center justify-center text-sky-400 font-bold">
+                      {u.avatar ? (
+                        <img src={u.avatar} alt={u.name} className="w-full h-full object-cover" />
+                      ) : (
+                        u.name.charAt(0)
+                      )}
+                      <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 border border-black" />
+                    </div>
+
+                    <div>
+                      <h4 className="text-sm font-bold text-white leading-tight">{u.name}</h4>
+                      <p className="text-[10px] text-slate-400 font-mono mt-0.5">ID: {u.id}</p>
+                    </div>
                   </div>
-                  <ShieldCheck size={14} className="text-emerald-400" />
+
+                  <span className="text-xs bg-sky-500/10 text-sky-400 px-2.5 py-1 rounded-xl font-bold border border-sky-500/20">
+                    Chat
+                  </span>
                 </div>
-              ))
-            )}
-          </div>
+              );
+            })
+          )}
         </div>
       </aside>
 
-      {/* Main Chat Canvas */}
-     <main className="flex-1 flex flex-col h-full w-full overflow-hidden bg-black relative">
-        <header className="h-14 sm:h-16 flex items-center justify-between px-3 sm:px-6 bg-slate-950/80 backdrop-blur-xl border-b border-slate-900 z-10 flex-shrink-0">
-          <div className="flex items-center gap-2.5 sm:gap-3">
-            <button
-              onClick={() => setIsDrawerOpen(true)}
-              className="p-1.5 -ml-1 text-slate-300 hover:text-white md:hidden"
-            >
-              <Menu size={20} />
-            </button>
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-rose-500 to-sky-500 flex items-center justify-center text-white font-bold shadow-[0_0_15px_rgba(56,189,248,0.4)] flex-shrink-0">
-              {activeChat.isGlobal ? <Globe size={18} /> : <MessageCircle size={18} />}
+      {/* PRIVATE 1-ON-1 CHAT WORKSPACE */}
+      <main
+        className={`flex-1 flex flex-col h-full w-full overflow-hidden bg-black relative ${
+          !activePartner ? "hidden md:flex items-center justify-center" : "flex"
+        }`}
+      >
+        {!activePartner ? (
+          <div className="text-center p-8 text-slate-500">
+            <div className="w-16 h-16 rounded-3xl bg-slate-900 flex items-center justify-center text-sky-400 mx-auto mb-3 border border-slate-800">
+              <MessageCircle size={28} />
             </div>
-            <div>
-              <h2 className="text-sm font-black text-slate-100 leading-tight">{activeChat.name}</h2>
-              <p className="text-[10px] text-sky-400 font-bold flex items-center gap-1 mt-0.5">
-                <Radio size={10} className="animate-pulse" />
-                Live Chat
-              </p>
-            </div>
+            <h3 className="text-base font-bold text-white mb-1">No conversation selected</h3>
+            <p className="text-xs text-slate-400">Tap on any user from the list to start messaging.</p>
           </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => initiateCall(false)}
-              className="p-2 sm:p-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-sky-500 text-slate-300 hover:text-sky-400 transition-all active:scale-95"
-              title="Voice Call"
-            >
-              <Phone size={16} />
-            </button>
-            <button
-              onClick={() => initiateCall(true)}
-              className="p-2 sm:p-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-sky-600 text-white font-bold transition-all shadow-[0_0_15px_rgba(244,63,94,0.4)] active:scale-95"
-              title="Video Call"
-            >
-              <Video size={16} />
-            </button>
-          </div>
-        </header>
-
-        {/* Message Thread */}
-        <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-3">
-          {messages.map((msg) => {
-            const isMe = msg.senderId === myFancyNumber;
-            const timeFormatted = msg.createdAt?.toDate
-              ? msg.createdAt.toDate().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-              : "...";
-
-            return (
-              <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"} w-full`}>
-                <div
-                  className={`p-3 rounded-2xl max-w-[85%] sm:max-w-[60%] shadow-lg ${
-                    isMe
-                      ? "bg-gradient-to-r from-rose-600 to-rose-500 text-white rounded-tr-none shadow-rose-600/30"
-                      : "bg-slate-900 text-slate-200 border border-slate-800 rounded-tl-none shadow-sky-950/40"
-                  }`}
+        ) : (
+          <>
+            {/* Header with Back button for mobile */}
+            <header className="h-14 sm:h-16 flex items-center justify-between px-3 sm:px-6 bg-slate-950 border-b border-slate-900 z-10 flex-shrink-0">
+              <div className="flex items-center gap-2.5 sm:gap-3">
+                <button
+                  onClick={() => setActivePartner(null)}
+                  className="p-1.5 -ml-1 text-slate-300 hover:text-white md:hidden"
+                  title="Back to User List"
                 >
-                  <div
-                    onClick={() => inspectUser(msg.senderId, msg.senderName, msg.senderAvatar)}
-                    className="flex items-center gap-2 mb-1 cursor-pointer hover:opacity-85 transition-opacity w-fit"
-                  >
-                    {msg.senderAvatar ? (
-                      <img src={msg.senderAvatar} alt="Avatar" className="w-4 h-4 rounded-full object-cover" />
-                    ) : null}
-                    <p
-                      className={`text-[10px] font-mono font-black ${
-                        isMe ? "text-rose-100" : "text-sky-400 underline decoration-sky-500/40"
-                      }`}
-                    >
-                      {msg.senderName || msg.senderId}
-                    </p>
-                  </div>
-
-                  {msg.type === "image" && (
-                    <img src={msg.text} alt="Attachment" className="w-56 rounded-xl object-cover mb-1" />
+                  <ArrowLeft size={20} />
+                </button>
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl overflow-hidden border border-sky-400/40 bg-slate-900 flex items-center justify-center text-white font-bold flex-shrink-0">
+                  {activePartner.avatar ? (
+                    <img src={activePartner.avatar} alt={activePartner.name} className="w-full h-full object-cover" />
+                  ) : (
+                    activePartner.name.charAt(0)
                   )}
-
-                  {msg.type === "video" && (
-                    <div className="w-56 rounded-xl overflow-hidden bg-black mb-1">
-                      <video src={msg.text} controls className="w-full max-h-72 rounded-xl" preload="metadata" />
-                    </div>
-                  )}
-
-                  {msg.type === "chunked_video" && msg.mediaId && (
-                    <ChunkedVideoPlayer mediaId={msg.mediaId} mimeType={msg.mimeType || "video/mp4"} />
-                  )}
-
-                  {msg.type === "audio" && (
-                    <div className="flex items-center gap-2 w-52 sm:w-60 py-1">
-                      <Volume2 size={18} className="text-sky-400 flex-shrink-0" />
-                      <audio src={msg.text} controls className="w-full h-8" />
-                    </div>
-                  )}
-
-                  {msg.type === "text" && (
-                    <p className="text-sm font-medium leading-relaxed break-words">{msg.text}</p>
-                  )}
-
-                  <div className="flex items-center justify-end gap-1 mt-1">
-                    <p
-                      className={`text-[9px] font-mono font-semibold ${
-                        isMe ? "text-rose-200" : "text-slate-400"
-                      }`}
-                    >
-                      {timeFormatted}
-                    </p>
-                    {isMe && (
-                      <CheckCheck
-                        size={13}
-                        className={msg.read ? "text-sky-300" : "text-rose-200 opacity-70"}
-                      />
-                    )}
-                  </div>
+                </div>
+                <div>
+                  <h2 className="text-sm font-black text-slate-100 leading-tight">{activePartner.name}</h2>
+                  <p className="text-[10px] text-sky-400 font-mono mt-0.5">ID: {activePartner.id}</p>
                 </div>
               </div>
-            );
-          })}
-          <div ref={scrollRef} />
-        </div>
 
-        {/* Real-Time Upload Progress */}
-        {uploadProgress !== null && (
-          <div className="mx-3 mb-2 p-2.5 rounded-2xl bg-slate-900 border border-sky-500/40 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="w-3.5 h-3.5 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
-              <p className="text-xs font-mono font-bold text-sky-300">
-                Streaming Video... {uploadProgress}%
-              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => initiateCall(false)}
+                  className="p-2 sm:p-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-sky-500 text-slate-300 hover:text-sky-400 transition-all active:scale-95"
+                  title="Voice Call"
+                >
+                  <Phone size={16} />
+                </button>
+                <button
+                  onClick={() => initiateCall(true)}
+                  className="p-2 sm:p-2.5 rounded-xl bg-gradient-to-r from-rose-500 to-sky-600 text-white font-bold transition-all shadow-[0_0_15px_rgba(244,63,94,0.4)] active:scale-95"
+                  title="Video Call"
+                >
+                  <Video size={16} />
+                </button>
+              </div>
+            </header>
+
+            {/* Message Thread */}
+            <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-3">
+              {messages.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-500">
+                  <p className="text-sm font-bold text-white mb-1">Say Hi to {activePartner.name}! 👋</p>
+                  <p className="text-xs text-slate-400">Direct, private, end-to-end conversation.</p>
+                </div>
+              ) : (
+                messages.map((msg) => {
+                  const isMe = msg.senderId === myFancyNumber;
+                  const timeFormatted = msg.createdAt?.toDate
+                    ? msg.createdAt.toDate().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                    : "...";
+
+                  return (
+                    <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"} w-full`}>
+                      <div
+                        className={`p-3 rounded-2xl max-w-[85%] sm:max-w-[60%] shadow-lg ${
+                          isMe
+                            ? "bg-gradient-to-r from-rose-600 to-rose-500 text-white rounded-tr-none shadow-rose-600/30"
+                            : "bg-slate-900 text-slate-200 border border-slate-800 rounded-tl-none shadow-sky-950/40"
+                        }`}
+                      >
+                        {msg.type === "image" && (
+                          <img src={msg.text} alt="Attachment" className="w-56 rounded-xl object-cover mb-1" />
+                        )}
+
+                        {msg.type === "video" && (
+                          <div className="w-56 rounded-xl overflow-hidden bg-black mb-1">
+                            <video src={msg.text} controls className="w-full max-h-72 rounded-xl" preload="metadata" />
+                          </div>
+                        )}
+
+                        {msg.type === "chunked_video" && msg.mediaId && (
+                          <ChunkedVideoPlayer mediaId={msg.mediaId} mimeType={msg.mimeType || "video/mp4"} />
+                        )}
+
+                        {msg.type === "audio" && (
+                          <div className="flex items-center gap-2 w-52 sm:w-60 py-1">
+                            <Volume2 size={18} className="text-sky-400 flex-shrink-0" />
+                            <audio src={msg.text} controls className="w-full h-8" />
+                          </div>
+                        )}
+
+                        {msg.type === "text" && (
+                          <p className="text-sm font-medium leading-relaxed break-words">{msg.text}</p>
+                        )}
+
+                        <div className="flex items-center justify-end gap-1 mt-1">
+                          <p
+                            className={`text-[9px] font-mono font-semibold ${
+                              isMe ? "text-rose-200" : "text-slate-400"
+                            }`}
+                          >
+                            {timeFormatted}
+                          </p>
+                          {isMe && (
+                            <CheckCheck
+                              size={13}
+                              className={msg.read ? "text-sky-300" : "text-rose-200 opacity-70"}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+              <div ref={scrollRef} />
             </div>
-            <span className="text-[10px] text-slate-400 font-mono">Please wait</span>
-          </div>
+
+            {/* Video Upload Indicator */}
+            {uploadProgress !== null && (
+              <div className="mx-3 mb-2 p-2.5 rounded-2xl bg-slate-900 border border-sky-500/40 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="w-3.5 h-3.5 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
+                  <p className="text-xs font-mono font-bold text-sky-300">Streaming Video... {uploadProgress}%</p>
+                </div>
+                <span className="text-[10px] text-slate-400 font-mono">Please wait</span>
+              </div>
+            )}
+
+            {/* Audio Recording Status */}
+            {isRecording && (
+              <div className="mx-3 mb-2 p-2.5 rounded-2xl bg-gradient-to-r from-rose-600 to-sky-600 text-white flex items-center justify-between shadow-xl animate-pulse">
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full bg-white animate-ping" />
+                  <span className="text-xs font-bold font-mono">Recording Audio... {recordSec}s</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => stopRecording(true)}
+                    className="text-xs bg-black/30 hover:bg-black/40 px-2.5 py-1 rounded-xl font-bold"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => stopRecording(false)}
+                    className="text-xs bg-white text-rose-600 px-3 py-1 rounded-xl font-black shadow-md"
+                  >
+                    Send Voice
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Message Input Box */}
+            <div className="p-2 sm:p-3 bg-slate-950 border-t border-slate-900 w-full flex-shrink-0 z-20 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+              <div className="max-w-4xl mx-auto flex items-end gap-1.5 sm:gap-2 bg-slate-900 border border-slate-800 rounded-2xl p-1.5 focus-within:border-sky-500 transition-colors">
+                <textarea
+                  rows={1}
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      sendMessage(message);
+                    }
+                  }}
+                  placeholder={`Message ${activePartner.name}...`}
+                  className="flex-1 py-1.5 px-2 outline-none text-sm bg-transparent resize-none max-h-28 text-slate-100 placeholder-slate-500 font-medium"
+                />
+
+                <div className="flex items-center gap-0.5">
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    accept="image/*,video/*"
+                    onChange={handleFileUpload}
+                  />
+                  <input
+                    type="file"
+                    ref={audioInputRef}
+                    className="hidden"
+                    accept="audio/*"
+                    onChange={handleFileUpload}
+                  />
+
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-2 text-slate-400 hover:text-sky-400 rounded-xl transition-colors"
+                    title="Attach Media"
+                  >
+                    <Paperclip size={18} />
+                  </button>
+
+                  <button
+                    onClick={isRecording ? () => stopRecording(false) : startRecording}
+                    className={`p-2 rounded-xl transition-all ${
+                      isRecording ? "bg-rose-600 text-white animate-bounce shadow-lg" : "text-slate-400 hover:text-sky-400"
+                    }`}
+                    title="Voice Note"
+                  >
+                    <Mic size={18} />
+                  </button>
+                </div>
+
+                <button
+                  onClick={() => sendMessage(message)}
+                  className="p-2.5 bg-gradient-to-tr from-rose-500 via-sky-500 to-indigo-600 text-white rounded-xl shadow-md transition-transform active:scale-95 flex-shrink-0"
+                >
+                  <Send size={16} />
+                </button>
+              </div>
+            </div>
+          </>
         )}
-
-        {/* Live Audio Recording Bar */}
-        {isRecording && (
-          <div className="mx-3 mb-2 p-2.5 rounded-2xl bg-gradient-to-r from-rose-600 to-sky-600 text-white flex items-center justify-between shadow-xl animate-pulse">
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-white animate-ping" />
-              <span className="text-xs font-bold font-mono">Recording Audio... {recordSec}s</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => stopRecording(true)}
-                className="text-xs bg-black/30 hover:bg-black/40 px-2.5 py-1 rounded-xl font-bold"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => stopRecording(false)}
-                className="text-xs bg-white text-rose-600 px-3 py-1 rounded-xl font-black shadow-md"
-              >
-                Send Voice
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Mobile-Aligned Input Composer */}
-        <div className="p-2 sm:p-3 bg-slate-950 border-t border-slate-900 w-full flex-shrink-0 z-20 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
-          <div className="max-w-4xl mx-auto flex items-end gap-1.5 sm:gap-2 bg-slate-900 border border-slate-800 rounded-2xl p-1.5 focus-within:border-sky-500 transition-colors">
-            <textarea
-              rows={1}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  sendMessage(message);
-                }
-              }}
-              placeholder={`Message ${activeChat.name}...`}
-              className="flex-1 py-1.5 px-2 outline-none text-sm bg-transparent resize-none max-h-28 text-slate-100 placeholder-slate-500 font-medium"
-            />
-
-            <div className="flex items-center gap-0.5">
-              <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                accept="image/*,video/*"
-                onChange={handleFileUpload}
-              />
-              <input
-                type="file"
-                ref={audioInputRef}
-                className="hidden"
-                accept="audio/*"
-                onChange={handleFileUpload}
-              />
-
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="p-2 text-slate-400 hover:text-sky-400 rounded-xl transition-colors"
-                title="Attach Media"
-              >
-                <Paperclip size={18} />
-              </button>
-
-              <button
-                onClick={isRecording ? () => stopRecording(false) : startRecording}
-                className={`p-2 rounded-xl transition-all ${
-                  isRecording ? "bg-rose-600 text-white animate-bounce shadow-lg" : "text-slate-400 hover:text-sky-400"
-                }`}
-                title="Voice Note"
-              >
-                <Mic size={18} />
-              </button>
-            </div>
-
-            <button
-              onClick={() => sendMessage(message)}
-              className="p-2.5 bg-gradient-to-tr from-rose-500 via-sky-500 to-indigo-600 text-white rounded-xl shadow-md transition-transform active:scale-95 flex-shrink-0"
-            >
-              <Send size={16} />
-            </button>
-          </div>
-        </div>
       </main>
 
       {/* Security Auth Modal */}
@@ -1750,20 +1496,19 @@ export default function ChatPage() {
         onLogout={handleLogout}
       />
 
-      {/* User Profile Card Modal */}
+      {/* User Profile Inspection Modal */}
       <UserProfileCardModal
         user={inspectedUser}
         myId={myFancyNumber}
         isOpen={!!inspectedUser}
         onClose={() => setInspectedUser(null)}
-        onRequestFriend={sendConnectionRequest}
-        onOpenDirectChat={selectPrivateChat}
+        onOpenDirectChat={(u) => setActivePartner(u)}
       />
 
       {/* Call HUD Overlay */}
       {callActive && (
         <InlineCallModal
-          channelName={activeChat.id}
+          channelName={activePartner ? [myFancyNumber, activePartner.id].sort().join("_") : "call"}
           isVideo={callIsVideo}
           onEndCall={terminateCall}
           localVideoTrack={localVideoTrack}
