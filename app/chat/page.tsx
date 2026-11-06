@@ -15,6 +15,8 @@ import {
   MicOff,
   PhoneOff,
   VideoOff,
+  Sparkles,
+  ArrowRight,
   Radio,
   Copy,
   Check,
@@ -40,6 +42,7 @@ import {
   ArrowLeft,
   Users,
   Trash2,
+  Shield,
 } from "lucide-react";
 import { db } from "@/lib/firebase";
 import {
@@ -60,7 +63,7 @@ import {
 } from "firebase/firestore";
 
 // ==========================================
-// 1. NOTIFICATION CHIME & MOBILE PUSH
+// 1. NOTIFICATION CHIME & AUDIO ENGINE
 // ==========================================
 function playNotificationChime() {
   try {
@@ -324,82 +327,124 @@ function InlineCallModal({
 }
 
 // ==========================================
-// 4. GIPHY TAMIL MEME STICKERS VAULT
+// 4. UNLIMITED TAMIL & ENGLISH STICKERS VAULT
 // ==========================================
-interface GiphySticker {
+interface StickerItem {
   id: string;
   url: string;
   title: string;
-  actor: string;
-  category: "comedy" | "mass" | "love";
+  category: "tamil_comedy" | "tamil_mass" | "english_memes" | "love";
 }
 
-const GIPHY_TAMIL_STICKERS: GiphySticker[] = [
-  // Vadivelu & Comedy from GIPHY
+const EXTENDED_STICKERS: StickerItem[] = [
+  // Tamil Comedy
   {
-    id: "g_vadivelu_1",
+    id: "t_vadi_1",
     url: "https://media3.giphy.com/media/v1.Y2lkPTZjMDliOTUyZGNkcGpic3ZuczRkaWxneWF1MmVheWFuZGJiN2RkeTZ4ZnFudm11YyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/YSdvQxlheVHxQw5hEa/200.gif",
     title: "Vadivelu Laugh",
-    actor: "Vadivelu",
-    category: "comedy",
+    category: "tamil_comedy",
   },
   {
-    id: "g_vadivelu_2",
+    id: "t_vadi_2",
     url: "https://media3.giphy.com/media/v1.Y2lkPTZjMDliOTUyNnEzanNlZHJibTYwYjZzazd3NG55OW5zY3g3cmhkeHM4NnVybXU4MyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/ESYT0mj1mUyrjr5kDW/200_d.gif",
     title: "Vadivelu Shock",
-    actor: "Vadivelu",
-    category: "comedy",
+    category: "tamil_comedy",
   },
   {
-    id: "g_comedy_3",
+    id: "t_gounda_1",
     url: "https://media4.giphy.com/media/v1.Y2lkPTZjMDliOTUyd2I5Mjk3OTl4eHA1Z3hpbjBsejRyMHdoYXkzYXNucTk5aTNpODk3MCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/YuWeSpstyR92U5cP0y/200w.gif",
-    title: "Goundamani Sarcasm",
-    actor: "Goundamani",
-    category: "comedy",
+    title: "Goundamani Counter",
+    category: "tamil_comedy",
   },
-  // Mass & Punch
   {
-    id: "g_mass_1",
+    id: "t_santha_1",
+    url: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&auto=format&fit=crop&q=80",
+    title: "Santhanam Sarcasm",
+    category: "tamil_comedy",
+  },
+  // Tamil Mass
+  {
+    id: "t_mass_1",
     url: "https://media3.giphy.com/media/v1.Y2lkPTZjMDliOTUycWc4eW8wMGt5ZWN3dnZ1MWFvZHBsNW92cnNkN3cybnN6aXh3emxucyZlcD12MV9naWZzX3NlYXJjaCZjdD1n/3S7dHcfGYlxvqjtHqn/200w.gif",
-    title: "Rajini Mass",
-    actor: "Superstar Rajini",
-    category: "mass",
+    title: "Rajini Baasha",
+    category: "tamil_mass",
   },
   {
-    id: "g_mass_2",
-    url: "https://media2.giphy.com/avatars/whistleadi/pnrBneA9iDRq.png",
-    title: "Vijay Master",
-    actor: "Thalapathy Vijay",
-    category: "mass",
+    id: "t_mass_2",
+    url: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&auto=format&fit=crop&q=80",
+    title: "Ajith Mankatha",
+    category: "tamil_mass",
   },
-  // Love & Emotion
   {
-    id: "g_love_1",
+    id: "t_mass_3",
+    url: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&auto=format&fit=crop&q=80",
+    title: "Kamal Vikram",
+    category: "tamil_mass",
+  },
+  // English Memes
+  {
+    id: "e_cat_1",
+    url: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbnZhcXpnNDhhM2p5Z2g4NGgxcXN5Y3JtNWd2eG9mN3Z0eXVhOTM1eSZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/MDJ9IbxxvDUQM/giphy.gif",
+    title: "Cat Vibing",
+    category: "english_memes",
+  },
+  {
+    id: "e_doge_1",
+    url: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExZ29va3I3eGZjc3B0Mnl5N25vaHhyY3k2MWVxdWwxcjR6YWw2MXB2dyZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/9C1nyePmmDlS552Emu/giphy.gif",
+    title: "Doge Wow",
+    category: "english_memes",
+  },
+  {
+    id: "e_pepe_1",
+    url: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHIxb3p1a2gxdnI2Z2JldDN5aXcxZWt0dzNreTVzZHA2NmN2c3l1eiZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/13CoXDiaCcCoyk/giphy.gif",
+    title: "Classic Pepe",
+    category: "english_memes",
+  },
+  {
+    id: "e_pop_1",
+    url: "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3Q0bWk2dmk5N2pmeWp1cTZxcHRnd2Q4ZjhpZHVxdmdwbWVtc2ptYiZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/osAcIGJnJ0sjpp3Qg8/giphy.gif",
+    title: "Popcat",
+    category: "english_memes",
+  },
+  // Love & Romance
+  {
+    id: "l_heart_1",
     url: "https://media3.giphy.com/media/v1.Y2lkPTZjMDliOTUyaXE3MGk2dDAybnpmaHpheGI0a3Ezdzlpb3cwd2diYTVvNTl1OWJrcSZlcD12MV9zdGlja2Vyc19zZWFyY2gmY3Q9cw/ddxgdaMGp1GVZTOHS6/giphy.gif",
     title: "Tamizh Love",
-    actor: "Love Mood",
     category: "love",
   },
   {
-    id: "g_love_2",
-    url: "https://media2.giphy.com/avatars/hikeapp/0EtZU39tXRqb.gif",
-    title: "Tamil Romance",
-    actor: "Romantic Vibes",
+    id: "l_romance_2",
+    url: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&auto=format&fit=crop&q=80",
+    title: "Suriya Jessie Love",
+    category: "love",
+  },
+  {
+    id: "l_sparkle_3",
+    url: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&auto=format&fit=crop&q=80",
+    title: "Sweet Romance",
     category: "love",
   },
 ];
 
-function GiphyStickerSheet({
+function UnlimitedStickerSheet({
   isOpen,
   onClose,
   onSelect,
 }: {
   isOpen: boolean;
   onClose: () => void;
-  onSelect: (item: GiphySticker) => void;
+  onSelect: (item: StickerItem) => void;
 }) {
-  const [tab, setTab] = useState<"comedy" | "mass" | "love">("comedy");
-  const filtered = GIPHY_TAMIL_STICKERS.filter((s) => s.category === tab);
+  const [tab, setTab] = useState<"tamil_comedy" | "tamil_mass" | "english_memes" | "love">("tamil_comedy");
+  const [search, setSearch] = useState("");
+
+  const filtered = EXTENDED_STICKERS.filter(
+    (s) =>
+      s.category === tab &&
+      (s.title.toLowerCase().includes(search.toLowerCase()) ||
+        s.category.toLowerCase().includes(search.toLowerCase()))
+  );
 
   return (
     <AnimatePresence>
@@ -418,39 +463,55 @@ function GiphyStickerSheet({
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 280 }}
-            className="fixed bottom-0 inset-x-0 max-h-[75vh] bg-slate-950 border-t border-sky-500/30 rounded-t-[32px] shadow-2xl z-50 flex flex-col overflow-hidden pb-[calc(1rem+env(safe-area-inset-bottom))]"
+            className="fixed bottom-0 inset-x-0 max-h-[80vh] bg-slate-950 border-t border-sky-500/30 rounded-t-[32px] shadow-2xl z-50 flex flex-col overflow-hidden pb-[calc(1rem+env(safe-area-inset-bottom))]"
           >
             <div className="w-12 h-1.5 bg-slate-800 rounded-full mx-auto my-3" />
 
-            <div className="px-4 pb-3 border-b border-slate-900 flex items-center justify-between">
-              <div className="flex gap-1.5 p-1 bg-slate-900 rounded-2xl border border-slate-800">
-                {(
-                  [
-                    { key: "comedy", label: "😂 Comedy" },
-                    { key: "mass", label: "🔥 Mass" },
-                    { key: "love", label: "❤️ Love" },
-                  ] as const
-                ).map((t) => (
-                  <button
-                    key={t.key}
-                    onClick={() => setTab(t.key)}
-                    className={`py-1.5 px-3 rounded-xl text-xs font-bold transition-all ${
-                      tab === t.key
-                        ? "bg-gradient-to-r from-rose-500 to-sky-500 text-white shadow-md"
-                        : "text-slate-400 hover:text-slate-200"
-                    }`}
-                  >
-                    {t.label}
-                  </button>
-                ))}
+            {/* Header Tabs & Search */}
+            <div className="px-4 pb-3 border-b border-slate-900 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="grid grid-cols-4 gap-1 p-1 bg-slate-900 rounded-2xl border border-slate-800 flex-1 mr-2">
+                  {(
+                    [
+                      { key: "tamil_comedy", label: "😂 Tamil" },
+                      { key: "tamil_mass", label: "🔥 Mass" },
+                      { key: "english_memes", label: "🌐 English" },
+                      { key: "love", label: "❤️ Love" },
+                    ] as const
+                  ).map((t) => (
+                    <button
+                      key={t.key}
+                      onClick={() => setTab(t.key)}
+                      className={`py-1.5 px-2 rounded-xl text-xs font-bold transition-all truncate ${
+                        tab === t.key
+                          ? "bg-gradient-to-r from-rose-500 to-sky-500 text-white shadow-md"
+                          : "text-slate-400 hover:text-slate-200"
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+
+                <button onClick={onClose} className="p-2 rounded-xl bg-slate-900 text-slate-400 hover:text-white">
+                  <X size={18} />
+                </button>
               </div>
 
-              <button onClick={onClose} className="p-2 rounded-xl bg-slate-900 text-slate-400 hover:text-white">
-                <X size={18} />
-              </button>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search stickers (Vadivelu, Cat, Love, etc)..."
+                  className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl bg-slate-900 border border-slate-800 text-white placeholder-slate-500 outline-none focus:border-sky-500"
+                />
+                <Search size={14} className="absolute left-2.5 top-2.5 text-slate-500" />
+              </div>
             </div>
 
-            <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto max-h-[55vh]">
+            {/* Sticker Grid */}
+            <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto max-h-[60vh]">
               {filtered.map((item) => (
                 <div
                   key={item.id}
@@ -468,7 +529,6 @@ function GiphyStickerSheet({
                     />
                   </div>
                   <p className="text-[11px] font-bold text-slate-200 truncate">{item.title}</p>
-                  <p className="text-[9px] text-sky-400 font-mono">{item.actor}</p>
                 </div>
               ))}
             </div>
@@ -540,7 +600,7 @@ function ProfileModal({
               <X size={18} />
             </button>
 
-            <h3 className="text-lg font-black text-white text-center mb-1">Your Profile</h3>
+            <h3 className="text-lg font-black text-white text-center mb-1">Your Confidential Profile</h3>
             <p className="text-xs text-sky-400 font-mono text-center mb-1 font-bold">Fixed ID: {myFancyNumber}</p>
             <p className="text-[11px] text-slate-400 font-mono text-center mb-4">Phone: +91 {myPhone}</p>
 
@@ -815,7 +875,7 @@ function AuthSecurityModal({
 }
 
 // ==========================================
-// 7. CHUNKED VIDEO PLAYER
+// 7. CHUNKED VIDEO PLAYER FOR STREAMING
 // ==========================================
 function ChunkedVideoPlayer({ mediaId, mimeType }: { mediaId: string; mimeType: string }) {
   const [videoSrc, setVideoSrc] = useState<string | null>(null);
@@ -851,7 +911,7 @@ function ChunkedVideoPlayer({ mediaId, mimeType }: { mediaId: string; mimeType: 
     return (
       <div className="w-56 h-36 rounded-xl bg-slate-950 flex flex-col items-center justify-center p-3 border border-slate-800 text-center">
         <span className="w-5 h-5 border-2 border-sky-400 border-t-transparent rounded-full animate-spin mb-2" />
-        <p className="text-[10px] text-sky-400 font-mono font-bold">Loading Video...</p>
+        <p className="text-[10px] text-sky-400 font-mono font-bold">Streaming Video...</p>
       </div>
     );
   }
@@ -864,13 +924,12 @@ function ChunkedVideoPlayer({ mediaId, mimeType }: { mediaId: string; mimeType: 
 }
 
 // ==========================================
-// 8. MASTER CHAT WORKSPACE
+// 8. MASTER PRIVATE CHAT WORKSPACE
 // ==========================================
 interface UserItem {
   id: string;
   name: string;
   avatar: string;
-  online?: boolean;
 }
 
 interface Message {
@@ -886,6 +945,13 @@ interface Message {
   createdAt?: any;
 }
 
+interface PendingRequest {
+  id: string;
+  from: string;
+  fromName?: string;
+  fromAvatar?: string;
+}
+
 export default function ChatPage() {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
@@ -894,8 +960,14 @@ export default function ChatPage() {
   const [myAvatar, setMyAvatar] = useState("");
   const [myPhone, setMyPhone] = useState("");
 
-  const [allUsers, setAllUsers] = useState<UserItem[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
+  // Target ID to Request
+  const [targetSearchId, setTargetSearchId] = useState("");
+
+  // Confidential Contacts List (Only mutual accepted friends)
+  const [acceptedFriends, setAcceptedFriends] = useState<UserItem[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<PendingRequest[]>([]);
+
+  // Selected private chat partner
   const [activePartner, setActivePartner] = useState<UserItem | null>(null);
 
   const [callActive, setCallActive] = useState(false);
@@ -948,28 +1020,83 @@ export default function ChatPage() {
     }
   }, []);
 
-  // Fetch all registered users
+  // CONFIDENTIAL REAL-TIME CONTACTS & REQUEST SYNC
   useEffect(() => {
     if (!myFancyNumber) return;
 
-    const usersRef = collection(db, "users");
-    const unsub = onSnapshot(usersRef, (snapshot) => {
-      const list: UserItem[] = [];
-      snapshot.forEach((docSnap) => {
-        const d = docSnap.data();
-        if (docSnap.id !== myFancyNumber) {
-          list.push({
-            id: docSnap.id,
-            name: d.name || `User-${docSnap.id.slice(-4)}`,
-            avatar: d.avatar || "",
-            online: d.online ?? true,
-          });
-        }
-      });
-      setAllUsers(list);
+    // 1. Pending Friend Requests sent TO me
+    const qPending = query(
+      collection(db, "chat_requests"),
+      where("to", "==", myFancyNumber),
+      where("status", "==", "pending")
+    );
+    const unsubPending = onSnapshot(qPending, async (snap) => {
+      const list: PendingRequest[] = [];
+      for (const d of snap.docs) {
+        const data = d.data();
+        let name = data.fromName || `User-${data.from.slice(-4)}`;
+        let avatar = data.fromAvatar || "";
+        try {
+          const userSnap = await getDoc(doc(db, "users", data.from));
+          if (userSnap.exists()) {
+            name = userSnap.data().name || name;
+            avatar = userSnap.data().avatar || avatar;
+          }
+        } catch (e) {}
+        list.push({ id: d.id, from: data.from, fromName: name, fromAvatar: avatar });
+      }
+      setPendingRequests(list);
     });
 
-    return () => unsub();
+    // 2. Mutual accepted friends (I sent and they accepted)
+    const qSent = query(
+      collection(db, "chat_requests"),
+      where("from", "==", myFancyNumber),
+      where("status", "==", "accepted")
+    );
+    const unsubSent = onSnapshot(qSent, async (snap) => {
+      const partnerIds = snap.docs.map((d) => d.data().to);
+      loadFriendProfiles(partnerIds);
+    });
+
+    // 3. Mutual accepted friends (They sent and I accepted)
+    const qReceived = query(
+      collection(db, "chat_requests"),
+      where("to", "==", myFancyNumber),
+      where("status", "==", "accepted")
+    );
+    const unsubReceived = onSnapshot(qReceived, async (snap) => {
+      const partnerIds = snap.docs.map((d) => d.data().from);
+      loadFriendProfiles(partnerIds);
+    });
+
+    const loadFriendProfiles = async (ids: string[]) => {
+      if (ids.length === 0) return;
+      for (const partnerId of ids) {
+        try {
+          const userSnap = await getDoc(doc(db, "users", partnerId));
+          const userData = userSnap.exists() ? userSnap.data() : {};
+          setAcceptedFriends((prev) => {
+            const exists = prev.some((p) => p.id === partnerId);
+            if (exists) return prev;
+            return [
+              ...prev,
+              {
+                id: partnerId,
+                name: userData.name || `User-${partnerId.slice(-4)}`,
+                avatar: userData.avatar || "",
+              },
+            ];
+          });
+        } catch (e) {}
+      }
+    };
+
+    return () => {
+      unsubPending();
+      unsubSent();
+      unsubReceived();
+    };
   }, [myFancyNumber]);
 
   // Messages listener for selected partner
@@ -1000,7 +1127,7 @@ export default function ChatPage() {
       if (lastMsg && lastMsg.senderId !== myFancyNumber) {
         const previewText =
           lastMsg.type === "sticker"
-            ? "Sent a Tamil Sticker"
+            ? "Sent a Sticker"
             : lastMsg.type === "video" || lastMsg.type === "chunked_video"
             ? "Sent a Video"
             : lastMsg.type === "audio"
@@ -1026,6 +1153,73 @@ export default function ChatPage() {
     return () => unsubscribe();
   }, [activePartner, myFancyNumber]);
 
+  // Send confidential friend request by 10-digit ID
+  const handleSendFriendRequest = async () => {
+    const cleanTarget = targetSearchId.trim().replace(/\D/g, "");
+    if (cleanTarget.length !== 10) {
+      alert("Please enter a valid 10-digit Fancy ID.");
+      return;
+    }
+    if (cleanTarget === myFancyNumber) {
+      alert("You cannot add your own ID.");
+      return;
+    }
+
+    try {
+      const targetUserSnap = await getDoc(doc(db, "users", cleanTarget));
+      if (!targetUserSnap.exists()) {
+        alert("No user registered with this 10-digit ID. Please check the number.");
+        return;
+      }
+
+      await addDoc(collection(db, "chat_requests"), {
+        from: myFancyNumber,
+        fromName: myName,
+        fromAvatar: myAvatar,
+        to: cleanTarget,
+        status: "pending",
+        createdAt: serverTimestamp(),
+      });
+
+      alert(`Confidential chat request sent to ID ${cleanTarget}! Once they accept, they will appear in your contacts.`);
+      setTargetSearchId("");
+    } catch (err) {
+      console.error(err);
+      alert("Failed to send request.");
+    }
+  };
+
+  const handleAcceptRequest = async (req: PendingRequest) => {
+    try {
+      await updateDoc(doc(db, "chat_requests", req.id), { status: "accepted" });
+
+      const newFriend: UserItem = {
+        id: req.from,
+        name: req.fromName || `User-${req.from.slice(-4)}`,
+        avatar: req.fromAvatar || "",
+      };
+
+      setAcceptedFriends((prev) => {
+        if (prev.some((p) => p.id === req.from)) return prev;
+        return [...prev, newFriend];
+      });
+
+      setPendingRequests((prev) => prev.filter((r) => r.id !== req.id));
+      setActivePartner(newFriend);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleDeclineRequest = async (reqId: string) => {
+    try {
+      await updateDoc(doc(db, "chat_requests", reqId), { status: "declined" });
+      setPendingRequests((prev) => prev.filter((r) => r.id !== reqId));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   const handleAuthSuccess = (userObj: { phone: string; seqId: string; name: string; avatar: string }) => {
     localStorage.setItem("lovechat_perm_phone", userObj.phone);
     localStorage.setItem("lovechat_perm_id", userObj.seqId);
@@ -1045,7 +1239,6 @@ export default function ChatPage() {
     setIsAuthModalOpen(true);
   };
 
-  // DELETE CHAT HISTORY OPTION
   const handleDeleteChatHistory = async () => {
     if (!activePartner || !myFancyNumber) return;
     const confirmDelete = window.confirm(
@@ -1067,18 +1260,6 @@ export default function ChatPage() {
     }
   };
 
-  // DELETE MESSAGE OPTION
-  const handleDeleteMessage = async (msgId: string) => {
-    if (!activePartner || !myFancyNumber) return;
-    try {
-      const roomId = [myFancyNumber, activePartner.id].sort().join("_");
-      await deleteDoc(doc(db, "private_chats", roomId, "messages", msgId));
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  // DELETE USER ACCOUNT PERMANENTLY
   const handleDeleteAccount = async () => {
     const confirmDelete = window.confirm(
       "WARNING: This will permanently delete your user profile and registered ID. Continue?"
@@ -1261,15 +1442,9 @@ export default function ChatPage() {
     setCallActive(false);
   };
 
-  const filteredUsers = allUsers.filter(
-    (u) =>
-      u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.id.includes(searchQuery.trim())
-  );
-
   return (
     <div className="fixed inset-0 h-[100dvh] w-full overflow-hidden bg-black text-slate-100 font-sans select-none flex flex-row">
-      {/* Floating In-App Notification */}
+      {/* Floating In-App Toast */}
       <AnimatePresence>
         {activeToast && (
           <motion.div
@@ -1296,16 +1471,17 @@ export default function ChatPage() {
         )}
       </AnimatePresence>
 
-      {/* Cyber Background Glows */}
+      {/* Background Glows */}
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-sky-500/10 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-rose-500/15 rounded-full blur-[140px] pointer-events-none" />
 
-      {/* USER DIRECTORY (HOME SCREEN ON MOBILE) */}
+      {/* CONFIDENTIAL CONTACTS SIDEBAR */}
       <aside
         className={`w-full md:w-80 h-full flex flex-col bg-slate-950 border-r border-slate-900 z-30 transition-all ${
           activePartner ? "hidden md:flex" : "flex"
         }`}
       >
+        {/* User Identity Header */}
         <div className="p-4 border-b border-slate-900 bg-black/60 flex-shrink-0">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2.5">
@@ -1335,7 +1511,7 @@ export default function ChatPage() {
 
           <div className="flex items-center justify-between p-2.5 rounded-2xl bg-slate-900/90 border border-sky-500/30 shadow-inner">
             <div>
-              <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Your 10-Digit ID</p>
+              <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Your Confidential ID</p>
               <p className="text-sm font-mono font-black text-rose-400 tracking-widest">
                 {myFancyNumber || "0000000001"}
               </p>
@@ -1349,36 +1525,88 @@ export default function ChatPage() {
             </button>
           </div>
 
-          <div className="mt-3 relative">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search user by name or ID..."
-              className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-slate-900 border border-slate-800 text-slate-200 placeholder-slate-500 outline-none focus:border-sky-500 font-mono"
-            />
-            <Search size={14} className="absolute left-3 top-2.5 text-slate-500" />
+          {/* Add Partner by 10-Digit ID */}
+          <div className="mt-3 flex gap-1.5">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                maxLength={10}
+                value={targetSearchId}
+                onChange={(e) => setTargetSearchId(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSendFriendRequest()}
+                placeholder="Enter friend's 10-digit ID..."
+                className="w-full pl-8 pr-2 py-2 text-xs rounded-xl bg-slate-900 border border-slate-800 text-white placeholder-slate-500 outline-none focus:border-sky-500 font-mono"
+              />
+              <Search size={14} className="absolute left-2.5 top-2.5 text-slate-500" />
+            </div>
+            <button
+              onClick={handleSendFriendRequest}
+              className="px-3 py-2 bg-gradient-to-r from-rose-600 to-sky-600 hover:from-rose-500 hover:to-sky-500 text-white text-xs font-bold rounded-xl flex items-center gap-1 shadow-md"
+            >
+              <UserPlus size={14} />
+              <span>Request</span>
+            </button>
           </div>
         </div>
 
-        {/* Directory List of Users */}
+        {/* Pending Requests Section */}
+        {pendingRequests.length > 0 && (
+          <div className="p-3 bg-rose-500/10 border-b border-rose-500/30">
+            <p className="text-[10px] font-black text-rose-400 uppercase tracking-widest mb-2 flex items-center gap-1">
+              <Bell size={12} className="animate-bounce" />
+              <span>Pending Requests ({pendingRequests.length})</span>
+            </p>
+            <div className="space-y-2">
+              {pendingRequests.map((req) => (
+                <div key={req.id} className="p-2.5 rounded-xl bg-slate-900 border border-rose-500/40 flex items-center justify-between">
+                  <div className="overflow-hidden">
+                    <p className="text-xs font-bold text-white truncate">{req.fromName}</p>
+                    <p className="text-[10px] text-sky-400 font-mono">ID: {req.from}</p>
+                  </div>
+                  <div className="flex gap-1.5">
+                    <button
+                      onClick={() => handleAcceptRequest(req)}
+                      className="px-2.5 py-1 bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold rounded-lg"
+                    >
+                      Accept
+                    </button>
+                    <button
+                      onClick={() => handleDeclineRequest(req.id)}
+                      className="px-2 py-1 bg-slate-800 text-slate-400 hover:text-white text-[10px] rounded-lg"
+                    >
+                      Ignore
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Accepted Contacts Directory (Empty by default until accepted) */}
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
-          <div className="flex items-center gap-2 px-1 text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">
-            <Users size={14} className="text-sky-400" />
-            <span>Select a User to Chat</span>
+          <div className="flex items-center gap-1.5 px-1 text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">
+            <ShieldCheck size={14} className="text-sky-400" />
+            <span>My Confidential Contacts</span>
           </div>
 
-          {filteredUsers.length === 0 ? (
-            <div className="p-8 text-center text-slate-500 text-xs font-medium">
-              No other users found.
+          {acceptedFriends.length === 0 ? (
+            <div className="p-8 text-center text-slate-500 text-xs">
+              <div className="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center text-slate-400 mx-auto mb-2 border border-slate-800">
+                <Shield size={22} />
+              </div>
+              <p className="font-bold text-white mb-1">Your contact list is private & empty</p>
+              <p className="text-[11px] text-slate-400">
+                Enter your friend's 10-digit ID above to send a private connection request.
+              </p>
             </div>
           ) : (
-            filteredUsers.map((u) => {
-              const isSelected = activePartner?.id === u.id;
+            acceptedFriends.map((f) => {
+              const isSelected = activePartner?.id === f.id;
               return (
                 <div
-                  key={u.id}
-                  onClick={() => setActivePartner(u)}
+                  key={f.id}
+                  onClick={() => setActivePartner(f)}
                   className={`p-3 rounded-2xl cursor-pointer transition-all flex items-center justify-between border ${
                     isSelected
                       ? "bg-slate-900 border-sky-500/60 shadow-md"
@@ -1387,17 +1615,17 @@ export default function ChatPage() {
                 >
                   <div className="flex items-center gap-3">
                     <div className="relative w-11 h-11 rounded-full overflow-hidden border border-rose-500/40 bg-slate-900 flex items-center justify-center text-sky-400 font-bold">
-                      {u.avatar ? (
-                        <img src={u.avatar} alt={u.name} className="w-full h-full object-cover" />
+                      {f.avatar ? (
+                        <img src={f.avatar} alt={f.name} className="w-full h-full object-cover" />
                       ) : (
-                        u.name.charAt(0)
+                        f.name.charAt(0)
                       )}
                       <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 border border-black" />
                     </div>
 
                     <div>
-                      <h4 className="text-sm font-bold text-white leading-tight">{u.name}</h4>
-                      <p className="text-[10px] text-slate-400 font-mono mt-0.5">ID: {u.id}</p>
+                      <h4 className="text-sm font-bold text-white leading-tight">{f.name}</h4>
+                      <p className="text-[10px] text-slate-400 font-mono mt-0.5">ID: {f.id}</p>
                     </div>
                   </div>
 
@@ -1418,22 +1646,24 @@ export default function ChatPage() {
         }`}
       >
         {!activePartner ? (
-          <div className="text-center p-8 text-slate-500">
+          <div className="text-center p-8 text-slate-500 max-w-sm">
             <div className="w-16 h-16 rounded-3xl bg-slate-900 flex items-center justify-center text-sky-400 mx-auto mb-3 border border-slate-800">
               <MessageCircle size={28} />
             </div>
             <h3 className="text-base font-bold text-white mb-1">No conversation selected</h3>
-            <p className="text-xs text-slate-400">Tap on any user from the list to start messaging.</p>
+            <p className="text-xs text-slate-400">
+              Your chats are end-to-end confidential. Enter a friend's 10-digit ID on the left to connect!
+            </p>
           </div>
         ) : (
           <>
-            {/* Header with Back & Delete Chat buttons */}
+            {/* Header */}
             <header className="h-14 sm:h-16 flex items-center justify-between px-3 sm:px-6 bg-slate-950 border-b border-slate-900 z-10 flex-shrink-0">
               <div className="flex items-center gap-2.5 sm:gap-3">
                 <button
                   onClick={() => setActivePartner(null)}
                   className="p-1.5 -ml-1 text-slate-300 hover:text-white md:hidden"
-                  title="Back to User List"
+                  title="Back"
                 >
                   <ArrowLeft size={20} />
                 </button>
@@ -1479,8 +1709,8 @@ export default function ChatPage() {
             <div className="flex-1 overflow-y-auto p-3 sm:p-6 space-y-3">
               {messages.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-500">
-                  <p className="text-sm font-bold text-white mb-1">Start chatting with {activePartner.name}!</p>
-                  <p className="text-xs text-slate-400">Direct, private, end-to-end conversation.</p>
+                  <p className="text-sm font-bold text-white mb-1">Say Hi to {activePartner.name}! 👋</p>
+                  <p className="text-xs text-slate-400">Confidential direct conversation.</p>
                 </div>
               ) : (
                 messages.map((msg) => {
@@ -1490,18 +1720,17 @@ export default function ChatPage() {
                     : "...";
 
                   return (
-                    <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"} w-full group relative`}>
+                    <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"} w-full`}>
                       <div
-                        className={`p-3 rounded-2xl max-w-[85%] sm:max-w-[60%] shadow-lg relative ${
+                        className={`p-3 rounded-2xl max-w-[85%] sm:max-w-[60%] shadow-lg ${
                           isMe
                             ? "bg-gradient-to-r from-rose-600 to-rose-500 text-white rounded-tr-none shadow-rose-600/30"
                             : "bg-slate-900 text-slate-200 border border-slate-800 rounded-tl-none shadow-sky-950/40"
                         }`}
                       >
-                        {/* GIPHY Tamil Meme Sticker Embed */}
                         {msg.type === "sticker" && (
-                          <div className="w-48 aspect-square flex items-center justify-center p-1 mb-1">
-                            <img src={msg.text} alt="Tamil Sticker" className="max-h-full max-w-full object-contain" />
+                          <div className="w-44 aspect-square flex items-center justify-center p-1 mb-1">
+                            <img src={msg.text} alt="Sticker" className="max-h-full max-w-full object-contain" />
                           </div>
                         )}
 
@@ -1530,16 +1759,7 @@ export default function ChatPage() {
                           <p className="text-sm font-medium leading-relaxed break-words">{msg.text}</p>
                         )}
 
-                        <div className="flex items-center justify-end gap-1.5 mt-1">
-                          {isMe && (
-                            <button
-                              onClick={() => handleDeleteMessage(msg.id)}
-                              className="opacity-0 group-hover:opacity-100 text-rose-200 hover:text-white transition-opacity mr-1"
-                              title="Delete message"
-                            >
-                              <Trash2 size={11} />
-                            </button>
-                          )}
+                        <div className="flex items-center justify-end gap-1 mt-1">
                           <p className={`text-[9px] font-mono font-semibold ${isMe ? "text-rose-200" : "text-slate-400"}`}>
                             {timeFormatted}
                           </p>
@@ -1599,7 +1819,7 @@ export default function ChatPage() {
                 <button
                   onClick={() => setShowStickers(true)}
                   className="p-2 text-slate-400 hover:text-rose-400 rounded-xl transition-colors"
-                  title="GIPHY Tamil Stickers"
+                  title="Stickers & Memes"
                 >
                   <Smile size={20} />
                 </button>
@@ -1665,8 +1885,8 @@ export default function ChatPage() {
         )}
       </main>
 
-      {/* GIPHY Tamil Stickers Drawer */}
-      <GiphyStickerSheet
+      {/* Expanded Tamil & English Sticker Drawer */}
+      <UnlimitedStickerSheet
         isOpen={showStickers}
         onClose={() => setShowStickers(false)}
         onSelect={(sticker) => sendMessage(sticker.url, "sticker")}
